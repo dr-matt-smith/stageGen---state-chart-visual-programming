@@ -1,1 +1,1 @@
-# stageGen---state-chart-visual-progamming
+# stageGen---state-chart-visual-programming
