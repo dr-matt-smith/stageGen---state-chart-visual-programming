@@ -3,6 +3,7 @@
 import { S } from './state.js';
 import { PROPERTY_TYPES } from './config.js';
 import { imageFiles, audioFiles } from './asset-manifest.js';
+import { getSoundMethods } from './inspector.js';
 import { canvasEl, connSvg, mmStatesEl } from './dom-refs.js';
 import { refreshMinimap } from './minimap.js';
 import { applyTransform } from './transform.js';
@@ -255,6 +256,28 @@ function renderObjectProperties() {
 
     row.appendChild(valueDiv);
     objectPropsList.appendChild(row);
+  }
+
+  // Auto-generated sound methods
+  const methods = getSoundMethods(cls);
+  if (methods.length > 0) {
+    const methodHeader = document.createElement('div');
+    methodHeader.className = 'object-prop-row';
+    methodHeader.style.fontWeight = '600';
+    methodHeader.style.color = 'var(--text-muted)';
+    methodHeader.style.fontSize = '10px';
+    methodHeader.style.textTransform = 'uppercase';
+    methodHeader.style.letterSpacing = '0.04em';
+    methodHeader.style.paddingTop = '8px';
+    methodHeader.textContent = 'Sound Methods';
+    objectPropsList.appendChild(methodHeader);
+
+    for (const m of methods) {
+      const mRow = document.createElement('div');
+      mRow.className = 'object-prop-row sound-method-item';
+      mRow.innerHTML = `<code class="method-signature">${m.signature}</code>`;
+      objectPropsList.appendChild(mRow);
+    }
   }
 }
 

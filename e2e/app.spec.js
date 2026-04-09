@@ -1385,3 +1385,72 @@ test.describe('V49: Image/Sound property dropdowns', () => {
     expect(hasSubfolder).toBe(true);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V50 — Sound methods
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('V50: Sound methods in class inspector', () => {
+  test('class with Sound property shows auto-generated methods', async ({ page }) => {
+    // Enter class mode, create a class with Sound property
+    await page.locator('#btn-edit-classes').click();
+    await page.evaluate(() => {
+      window._origPrompt = window.prompt;
+      window.prompt = () => 'AudioClass';
+    });
+    await page.locator('#btn-add-class').click();
+    await page.evaluate(() => { window.prompt = window._origPrompt; });
+
+    // Click the class, add a Sound property
+    await page.locator('#classes-list .left-panel-item').last().click();
+    await page.locator('button:has-text("+ Add Property")').click();
+
+    // Change property name and type
+    const nameInputs = page.locator('#inspector-props input.inspector-input');
+    const lastNameInput = nameInputs.last();
+    await lastNameInput.fill('music');
+
+    const lastTypeSelect = page.locator('#inspector-props select.inspector-select').last();
+    await lastTypeSelect.selectOption('Sound');
+
+    // Should see Sound Methods section with 3 methods
+    const methodRows = page.locator('.sound-method-row');
+    await expect(methodRows).toHaveCount(3);
+    await expect(methodRows.nth(0)).toContainText('MusicPlay()');
+    await expect(methodRows.nth(1)).toContainText('MusicPause()');
+    await expect(methodRows.nth(2)).toContainText('MusicSetLooping(boolean)');
+  });
+});
+
+test.describe('V50: Sound methods in data panel', () => {
+  test('object with Sound property shows methods in data panel', async ({ page }) => {
+    // Create class with Sound property in class mode
+    await page.locator('#btn-edit-classes').click();
+    await page.evaluate(() => {
+      window._origPrompt = window.prompt;
+      window.prompt = () => 'SfxClass';
+    });
+    await page.locator('#btn-add-class').click();
+    await page.evaluate(() => { window.prompt = window._origPrompt; });
+
+    await page.locator('#classes-list .left-panel-item').last().click();
+    await page.locator('button:has-text("+ Add Property")').click();
+
+    const lastNameInput = page.locator('#inspector-props input.inspector-input').last();
+    await lastNameInput.fill('fireSound');
+    const lastTypeSelect = page.locator('#inspector-props select.inspector-select').last();
+    await lastTypeSelect.selectOption('Sound');
+
+    // Switch to object mode, create object of SfxClass
+    await page.evaluate(() => document.getElementById('objects-header').click());
+    await addObjectViaForm(page, 'sfxObj', 'SfxClass');
+    await page.locator('#objects-list .left-panel-item').last().click();
+
+    // Should see sound method items in data panel
+    const methodItems = page.locator('#object-props-list .sound-method-item');
+    await expect(methodItems).toHaveCount(3);
+    await expect(methodItems.nth(0)).toContainText('FireSoundPlay()');
+    await expect(methodItems.nth(1)).toContainText('FireSoundPause()');
+    await expect(methodItems.nth(2)).toContainText('FireSoundSetLooping(boolean)');
+  });
+});

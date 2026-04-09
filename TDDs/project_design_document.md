@@ -163,3 +163,20 @@ Version 49 - Image/Sound dropdown lists
 - ✅ Selected file path is stored in the object's propertyValues
 - ✅ Added 7 new Vitest unit tests (145 total)
 - ✅ Added 3 new Playwright e2e tests (128 total)
+
+
+Version 50 - Play sound methods
+==================
+
+- ✅ For each Sound-type property on a class, auto-generated methods are shown:
+  - ✅ `<PropName>Play()` — play from beginning of sound
+  - ✅ `<PropName>Pause()` — pause sound playing
+  - ✅ `<PropName>SetLooping(boolean)` — repeat (or not) when sound finishes
+  - e.g. property 'music' → MusicPlay(), MusicPause(), MusicSetLooping(boolean)
+  - e.g. property 'fireSound' → FireSoundPlay(), FireSoundPause(), FireSoundSetLooping(boolean)
+- ✅ Sound Methods section displayed in class inspector (below properties)
+- ✅ Sound Methods section displayed in object properties area of Data panel
+- ✅ Methods are auto-derived — no manual creation needed; they update when properties change
+- ✅ Added 7 new Vitest unit tests (152 total)
+- ✅ Added 2 new Playwright e2e tests (130 total)
+

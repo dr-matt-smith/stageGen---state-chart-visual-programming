@@ -282,6 +282,22 @@
   color: #93c5fd;
 }
 
+/* ── Sound method items in data panel ───────────────────────────────────────── */
+
+.sound-method-item {
+  padding: 2px 10px;
+  font-size: 11px;
+}
+
+.sound-method-item .method-signature {
+  font-family: 'SF Mono', 'Consolas', 'Menlo', monospace;
+  font-size: 11px;
+  color: #60a5fa;
+  background: var(--bg-card);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
 /* ── No-object overlay ─────────────────────────────────────────────────────── */
 
 #canvas-no-object {

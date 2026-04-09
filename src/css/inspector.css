@@ -186,6 +186,27 @@
   color: #ef4444;
 }
 
+/* ── Sound method rows ─────────────────────────────────────────────────────── */
+
+.method-signature {
+  font-family: 'SF Mono', 'Consolas', 'Menlo', monospace;
+  font-size: 11px;
+  color: #60a5fa;
+  background: var(--bg-card);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.method-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.sound-method-row td {
+  padding: 3px 6px;
+}
+
 /* ── JSON export modal ─────────────────────────────────────────────────────── */
 #json-modal-overlay {
   position: fixed;

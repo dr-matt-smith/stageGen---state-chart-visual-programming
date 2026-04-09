@@ -1356,3 +1356,79 @@ describe('V49: Image/Sound property dropdowns in data panel', () => {
     expect(obj.propertyValues.icon).toBe(sel.options[1].value);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V50 — Sound methods
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V50: getSoundMethods', () => {
+  it('returns empty array for class with no Sound properties', () => {
+    const cls = { properties: [{ name: 'x', type: 'Integer' }] };
+    expect(app.getSoundMethods(cls)).toEqual([]);
+  });
+
+  it('returns 3 methods per Sound property', () => {
+    const cls = { properties: [{ name: 'music', type: 'Sound' }] };
+    const methods = app.getSoundMethods(cls);
+    expect(methods.length).toBe(3);
+  });
+
+  it('generates correct method names from property name', () => {
+    const cls = { properties: [{ name: 'music', type: 'Sound' }] };
+    const methods = app.getSoundMethods(cls);
+    expect(methods[0].signature).toBe('MusicPlay()');
+    expect(methods[1].signature).toBe('MusicPause()');
+    expect(methods[2].signature).toBe('MusicSetLooping(boolean)');
+  });
+
+  it('generates methods for multiple Sound properties', () => {
+    const cls = { properties: [
+      { name: 'music', type: 'Sound' },
+      { name: 'fireSound', type: 'Sound' },
+    ]};
+    const methods = app.getSoundMethods(cls);
+    expect(methods.length).toBe(6);
+    expect(methods[3].signature).toBe('FireSoundPlay()');
+    expect(methods[4].signature).toBe('FireSoundPause()');
+    expect(methods[5].signature).toBe('FireSoundSetLooping(boolean)');
+  });
+
+  it('ignores non-Sound properties', () => {
+    const cls = { properties: [
+      { name: 'name', type: 'String' },
+      { name: 'sfx', type: 'Sound' },
+      { name: 'icon', type: 'Image' },
+    ]};
+    const methods = app.getSoundMethods(cls);
+    expect(methods.length).toBe(3);
+    expect(methods[0].signature).toBe('SfxPlay()');
+  });
+});
+
+describe('V50: Sound methods in class inspector', () => {
+  it('class inspector shows Sound Methods section for class with Sound property', () => {
+    const cls = app.addClass('SoundTestV50');
+    cls.properties.push({ name: 'bgm', type: 'Sound' });
+    app.enterClassMode();
+    app.selectClassInPanel(cls.id);
+
+    const rows = document.querySelectorAll('.sound-method-row');
+    expect(rows.length).toBe(3);
+    expect(rows[0].textContent).toContain('BgmPlay()');
+    expect(rows[1].textContent).toContain('BgmPause()');
+    expect(rows[2].textContent).toContain('BgmSetLooping(boolean)');
+  });
+});
+
+describe('V50: Sound methods in data panel', () => {
+  it('object properties show sound methods for Sound-type properties', () => {
+    const cls = app.S.classes.find(c => c.name === 'SoundTestV50') || app.addClass('SoundTestV50b');
+    if (cls.properties.length === 0) cls.properties.push({ name: 'bgm', type: 'Sound' });
+    const obj = app.addObject('sndObjV50', cls.id);
+    app.selectObject(obj.id);
+
+    const methodItems = document.querySelectorAll('#object-props-list .sound-method-item');
+    expect(methodItems.length).toBe(3);
+    expect(methodItems[0].textContent).toContain('BgmPlay()');
+  });
+});

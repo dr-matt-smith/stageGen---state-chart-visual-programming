@@ -259,6 +259,48 @@ function renderClassInspector(classId) {
   addTd.appendChild(addBtn);
   addRow.appendChild(addTd);
   tbody.appendChild(addRow);
+
+  // Auto-generated sound methods
+  renderSoundMethodsSection(cls);
+}
+
+// ── Sound methods (auto-generated) ──────────────────────────────────────────
+
+/**
+ * For a given class, return an array of auto-generated method signatures
+ * derived from Sound-type properties.
+ * e.g. property "music" → MusicPlay(), MusicPause(), MusicSetLooping(boolean)
+ */
+export function getSoundMethods(cls) {
+  if (!cls || !cls.properties) return [];
+  const methods = [];
+  for (const prop of cls.properties) {
+    if (prop.type !== 'Sound') continue;
+    const base = prop.name.charAt(0).toUpperCase() + prop.name.slice(1);
+    methods.push({ name: `${base}Play`, signature: `${base}Play()`, description: 'Play from beginning' });
+    methods.push({ name: `${base}Pause`, signature: `${base}Pause()`, description: 'Pause playback' });
+    methods.push({ name: `${base}SetLooping`, signature: `${base}SetLooping(boolean)`, description: 'Set looping on/off' });
+  }
+  return methods;
+}
+
+function renderSoundMethodsSection(cls) {
+  const methods = getSoundMethods(cls);
+  if (methods.length === 0) return;
+
+  const headerRow = document.createElement('tr');
+  headerRow.innerHTML = `<td colspan="2" style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.05em;padding-top:12px;">Sound Methods</td>`;
+  tbody.appendChild(headerRow);
+
+  for (const m of methods) {
+    const tr = document.createElement('tr');
+    tr.className = 'sound-method-row';
+    const sigTd = document.createElement('td');
+    sigTd.colSpan = 2;
+    sigTd.innerHTML = `<code class="method-signature">${escapeHtml(m.signature)}</code><span class="method-desc">${escapeHtml(m.description)}</span>`;
+    tr.appendChild(sigTd);
+    tbody.appendChild(tr);
+  }
 }
 
 // ── Enum class inspector ────────────────────────────────────────────────────
