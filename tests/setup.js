@@ -14,7 +14,7 @@ export function setupDOM() {
       <div id="left-panel">
         <div id="data-panel-title" class="left-panel-title">Data</div>
         <div id="section-objects" class="left-panel-section">
-          <div class="left-panel-header"><span>Objects</span><button id="btn-add-object" class="left-panel-add-btn">+</button></div>
+          <div class="left-panel-header" id="objects-header"><span>Objects</span><button id="btn-add-object" class="left-panel-add-btn">+</button></div>
           <div id="objects-list" class="left-panel-list"></div>
           <div id="add-object-form" class="add-object-form" style="display:none;">
             <select id="add-object-class" title="Class"></select>
@@ -35,6 +35,7 @@ export function setupDOM() {
           <div class="left-panel-header" id="enums-header"><span>Enum Classes</span><button id="btn-add-enum" class="left-panel-add-btn">+</button></div>
           <div id="enums-list" class="left-panel-list"></div>
         </div>
+        <div id="btn-edit-classes" class="left-panel-mode-btn">Edit Classes &amp; Enums</div>
       </div>
       <div id="divider-left"></div>
       <div id="canvas-container" style="width:800px;height:600px;">

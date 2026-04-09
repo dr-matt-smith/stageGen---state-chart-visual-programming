@@ -17,7 +17,8 @@ import { renderConnGroup, updateConnection } from './connections/conn-render.js'
 import { recalcPairOffsets } from './connections/conn-model.js';
 import { updateInspector, showJsonExport, setRenderLeftPanel } from './inspector.js';
 import { S as _S2, initDefaults } from './state.js';
-import { renderLeftPanel, selectObject, deselectObject, addObject, addClass, addEnumClass,
+import { renderLeftPanel, selectObject, deselectObject, enterClassMode, enterObjectMode,
+         addObject, addClass, addEnumClass,
          deleteObject, deleteClass, deleteEnumClass, selectClassInPanel, selectEnumInPanel,
          saveActiveObjectChart } from './left-panel.js';
 
@@ -573,23 +574,27 @@ document.getElementById('btn-add-enum').addEventListener('click', () => {
   addEnumClass(name.trim());
 });
 
-// Clicking minimized Classes/Enums header deselects object and restores full lists
+// "Edit Classes & Enums" button — switch to class/enum editing mode
+document.getElementById('btn-edit-classes').addEventListener('click', () => enterClassMode());
+
+// Clicking minimized Classes/Enums header also switches to class mode
 document.getElementById('classes-header').addEventListener('click', (e) => {
   if (!document.getElementById('section-classes').classList.contains('minimized')) return;
   e.stopPropagation();
-  deselectObject();
-  S.selectedLeftPanelItem = null;
-  updateInspector();
-  renderLeftPanel();
+  enterClassMode();
 });
 
 document.getElementById('enums-header').addEventListener('click', (e) => {
   if (!document.getElementById('section-enums').classList.contains('minimized')) return;
   e.stopPropagation();
-  deselectObject();
-  S.selectedLeftPanelItem = null;
-  updateInspector();
-  renderLeftPanel();
+  enterClassMode();
+});
+
+// Clicking minimized Objects header switches back to object mode
+document.getElementById('objects-header').addEventListener('click', (e) => {
+  if (!document.getElementById('section-objects').classList.contains('minimized')) return;
+  e.stopPropagation();
+  enterObjectMode();
 });
 
 // Left divider resize
@@ -640,6 +645,7 @@ export { selectConn, deselectConn } from './connections/conn-selection.js';
 export { getBorderPoint, getPairPerpendicular } from './connections/geometry.js';
 export { updateInspector, serialiseDiagram } from './inspector.js';
 export { initDefaults } from './state.js';
-export { renderLeftPanel, selectObject, deselectObject, addObject, addClass, addEnumClass,
+export { renderLeftPanel, selectObject, deselectObject, enterClassMode, enterObjectMode,
+         addObject, addClass, addEnumClass,
          deleteObject, deleteClass, deleteEnumClass,
          selectClassInPanel, selectEnumInPanel, saveActiveObjectChart } from './left-panel.js';

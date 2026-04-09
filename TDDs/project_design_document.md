@@ -135,3 +135,19 @@ Version 47 features - new object creation
 
 - ✅ Added 8 new Vitest unit tests (131 total)
 - ✅ Added 10 new Playwright e2e tests (117 total)
+
+
+Version 48 - Editing classes and enum classes
+==================
+
+- ✅ "Edit Classes & Enums" button at bottom of Data panel switches to class/enum editing mode
+  - ✅ When clicked, Objects section is minimized and Classes/Enums sections are expanded
+  - ✅ Can CRUD classes and Enum Classes in this mode
+  - ✅ Properties for selected Class/Enum Class appear in Inspector
+  - ✅ Canvas shows "Select an object to view its state chart" overlay (no state chart editing in class mode)
+  - ✅ Button is hidden while in class mode (no redundant action)
+- ✅ Clicking minimized Objects header switches back to object mode (selects first object)
+- ✅ Clicking minimized Classes/Enums headers also enters class mode (consistent with V46)
+- ✅ Fixed CSS overlap issue where minimized sections intercepted pointer events on adjacent elements
+- ✅ Added 7 new Vitest unit tests (138 total)
+- ✅ Added 8 new Playwright e2e tests (125 total)

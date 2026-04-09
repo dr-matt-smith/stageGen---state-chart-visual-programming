@@ -1224,3 +1224,65 @@ describe('V47: Delete object confirmation', () => {
     expect(app.S.objects.length).toBe(before - 1);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V48 — Class/Enum editing mode
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V48: Edit Classes button and mode switching', () => {
+  it('Edit Classes button exists', () => {
+    expect(document.getElementById('btn-edit-classes')).toBeTruthy();
+  });
+
+  it('enterClassMode deselects object and minimizes Objects section', () => {
+    const game = app.S.objects.find(o => o.name === 'game');
+    app.selectObject(game.id);
+    expect(app.S.activeObjectId).toBe(game.id);
+
+    app.enterClassMode();
+    expect(app.S.activeObjectId).toBeNull();
+    const sectionObjects = document.getElementById('section-objects');
+    expect(sectionObjects.classList.contains('minimized')).toBe(true);
+  });
+
+  it('enterClassMode expands Classes and Enums sections', () => {
+    app.enterClassMode();
+    const classes = document.getElementById('section-classes');
+    const enums = document.getElementById('section-enums');
+    expect(classes.classList.contains('minimized')).toBe(false);
+    expect(enums.classList.contains('minimized')).toBe(false);
+  });
+
+  it('enterClassMode hides the Edit Classes button', () => {
+    app.enterClassMode();
+    const btn = document.getElementById('btn-edit-classes');
+    expect(btn.style.display).toBe('none');
+  });
+
+  it('enterObjectMode selects first object and restores object mode', () => {
+    app.enterClassMode();
+    app.enterObjectMode();
+    expect(app.S.activeObjectId).not.toBeNull();
+    const sectionObjects = document.getElementById('section-objects');
+    expect(sectionObjects.classList.contains('minimized')).toBe(false);
+  });
+
+  it('in class mode, Classes and Enums can be CRUD-ed via panel', () => {
+    app.enterClassMode();
+    const before = app.S.classes.length;
+    app.addClass('TestV48');
+    expect(app.S.classes.length).toBe(before + 1);
+    const items = document.querySelectorAll('#classes-list .left-panel-item');
+    expect(items.length).toBe(app.S.classes.length);
+    // cleanup
+    const cls = app.S.classes.find(c => c.name === 'TestV48');
+    app.deleteClass(cls.id);
+  });
+
+  it('clicking Objects header in class mode switches back to object mode', () => {
+    app.enterClassMode();
+    const header = document.getElementById('objects-header');
+    header.click();
+    expect(app.S.activeObjectId).not.toBeNull();
+  });
+});

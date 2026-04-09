@@ -14,6 +14,7 @@ import { deselectConn } from './connections/conn-selection.js';
 const objectsList      = document.getElementById('objects-list');
 const classesList      = document.getElementById('classes-list');
 const enumsList        = document.getElementById('enums-list');
+const sectionObjects   = document.getElementById('section-objects');
 const sectionObjProps  = document.getElementById('section-object-props');
 const objectPropsList  = document.getElementById('object-props-list');
 const objectPropsTitle = document.getElementById('object-props-title');
@@ -22,38 +23,39 @@ const sectionEnums     = document.getElementById('section-enums');
 const classesHeader    = document.getElementById('classes-header');
 const enumsHeader      = document.getElementById('enums-header');
 const canvasNoObject   = document.getElementById('canvas-no-object');
+const btnEditClasses   = document.getElementById('btn-edit-classes');
 
 // ── Render ──────────────────────────────────────────────────────────────────
 
 export function renderLeftPanel() {
-  const hasActiveObject = S.activeObjectId != null;
+  const inObjectMode = S.activeObjectId != null;
 
-  renderObjectsList();
+  // ── Object mode: objects + props expanded, classes/enums minimized ──
+  // ── Class mode:  objects minimized, classes/enums expanded ──────────
 
-  // Object properties section: visible only when an object is selected
-  if (hasActiveObject) {
+  if (inObjectMode) {
+    sectionObjects.classList.remove('minimized');
     sectionObjProps.style.display = '';
-    renderObjectProperties();
-  } else {
-    sectionObjProps.style.display = 'none';
-    objectPropsList.innerHTML = '';
-  }
-
-  // Minimise Classes/Enums when an object is selected
-  if (hasActiveObject) {
     sectionClasses.classList.add('minimized');
     sectionEnums.classList.add('minimized');
+    btnEditClasses.style.display = '';
+    renderObjectProperties();
   } else {
+    sectionObjects.classList.add('minimized');
+    sectionObjProps.style.display = 'none';
+    objectPropsList.innerHTML = '';
     sectionClasses.classList.remove('minimized');
     sectionEnums.classList.remove('minimized');
+    btnEditClasses.style.display = 'none';
   }
 
+  renderObjectsList();
   renderClassesList();
   renderEnumsList();
 
   // Canvas no-object overlay
   if (canvasNoObject) {
-    canvasNoObject.style.display = hasActiveObject ? 'none' : '';
+    canvasNoObject.style.display = inObjectMode ? 'none' : '';
   }
 }
 
@@ -306,6 +308,25 @@ export function deselectObject() {
 
   refreshMinimap();
   applyTransform();
+}
+
+/**
+ * Switch to class/enum editing mode.
+ * Deselects the current object and updates the panel layout.
+ */
+export function enterClassMode() {
+  deselectObject();
+  S.selectedLeftPanelItem = null;
+  updateInspector();
+  renderLeftPanel();
+}
+
+/**
+ * Switch back to object mode by selecting the first available object.
+ */
+export function enterObjectMode() {
+  const first = S.objects[0];
+  if (first) selectObject(first.id);
 }
 
 /** Save live S.nodes/connections data into the currently active object. */

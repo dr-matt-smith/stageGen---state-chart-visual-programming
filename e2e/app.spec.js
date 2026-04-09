@@ -1221,3 +1221,78 @@ test.describe('V47: Delete object confirmation', () => {
     await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(itemCount);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V48 — Class/Enum editing mode
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('V48: Edit Classes button', () => {
+  test('Edit Classes button is visible when object is selected', async ({ page }) => {
+    await expect(page.locator('#btn-edit-classes')).toBeVisible();
+  });
+
+  test('clicking Edit Classes switches to class mode', async ({ page }) => {
+    await page.locator('#btn-edit-classes').click();
+    // Objects section should be minimized
+    const objMinimized = await page.locator('#section-objects').evaluate(el => el.classList.contains('minimized'));
+    expect(objMinimized).toBe(true);
+    // Classes should be expanded
+    await expect(page.locator('#classes-list')).toBeVisible();
+    await expect(page.locator('#enums-list')).toBeVisible();
+  });
+
+  test('Edit Classes button is hidden in class mode', async ({ page }) => {
+    await page.locator('#btn-edit-classes').click();
+    await expect(page.locator('#btn-edit-classes')).toBeHidden();
+  });
+
+  test('canvas shows no-object overlay in class mode', async ({ page }) => {
+    await page.locator('#btn-edit-classes').click();
+    await expect(page.locator('#canvas-no-object')).toBeVisible();
+  });
+});
+
+test.describe('V48: Objects header returns to object mode', () => {
+  test('clicking minimized Objects header switches back to object mode', async ({ page }) => {
+    await page.locator('#btn-edit-classes').click();
+    // Objects header should be visible even when minimized
+    await page.evaluate(() => document.getElementById('objects-header').click());
+    // Objects section should be expanded now
+    const objMinimized = await page.locator('#section-objects').evaluate(el => el.classList.contains('minimized'));
+    expect(objMinimized).toBe(false);
+    // Canvas overlay should be hidden
+    await expect(page.locator('#canvas-no-object')).toBeHidden();
+  });
+});
+
+test.describe('V48: Class CRUD in class mode', () => {
+  test('can add a class in class mode', async ({ page }) => {
+    await page.locator('#btn-edit-classes').click();
+    const beforeCount = await page.locator('#classes-list .left-panel-item').count();
+    await page.evaluate(() => {
+      window._origPrompt = window.prompt;
+      window.prompt = () => 'V48Class';
+    });
+    await page.locator('#btn-add-class').click();
+    await page.evaluate(() => { window.prompt = window._origPrompt; });
+    await expect(page.locator('#classes-list .left-panel-item')).toHaveCount(beforeCount + 1);
+  });
+
+  test('clicking a class in class mode shows its properties in inspector', async ({ page }) => {
+    await page.locator('#btn-edit-classes').click();
+    await page.locator('#classes-list .left-panel-item').first().click();
+    await expect(page.locator('#inspector-props')).toBeVisible();
+  });
+
+  test('can add an enum class in class mode', async ({ page }) => {
+    await page.locator('#btn-edit-classes').click();
+    const beforeCount = await page.locator('#enums-list .left-panel-item').count();
+    await page.evaluate(() => {
+      window._origPrompt = window.prompt;
+      window.prompt = () => 'V48Enum';
+    });
+    await page.locator('#btn-add-enum').click();
+    await page.evaluate(() => { window.prompt = window._origPrompt; });
+    await expect(page.locator('#enums-list .left-panel-item')).toHaveCount(beforeCount + 1);
+  });
+});
