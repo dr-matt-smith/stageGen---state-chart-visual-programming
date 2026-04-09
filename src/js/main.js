@@ -15,7 +15,11 @@ import { cancelConnEditing } from './connections/conn-editing.js';
 import { getBorderPoint } from './connections/geometry.js';
 import { renderConnGroup, updateConnection } from './connections/conn-render.js';
 import { recalcPairOffsets } from './connections/conn-model.js';
-import { updateInspector, showJsonExport } from './inspector.js';
+import { updateInspector, showJsonExport, setRenderLeftPanel } from './inspector.js';
+import { S as _S2, initDefaults } from './state.js';
+import { renderLeftPanel, selectObject, addObject, addClass, addEnumClass,
+         deleteObject, deleteClass, deleteEnumClass, selectClassInPanel, selectEnumInPanel,
+         saveActiveObjectChart } from './left-panel.js';
 
 // ── Toolbar: Fit All ─────────────────────────────────────────────────────────
 
@@ -508,6 +512,61 @@ themeToggleBtn.addEventListener('click', () => {
   }
 });
 
+// ── Left panel ──────────────────────────────────────────────────────────────
+
+initDefaults();
+setRenderLeftPanel(renderLeftPanel);
+renderLeftPanel();
+
+document.getElementById('btn-add-object').addEventListener('click', () => {
+  const name = prompt('Object name:');
+  if (!name || !name.trim()) return;
+  // Ask which class
+  const classNames = S.classes.map(c => c.name);
+  const classChoice = prompt(`Class (${classNames.join(', ')}):`, classNames[0] || '');
+  const cls = S.classes.find(c => c.name === classChoice);
+  addObject(name.trim(), cls ? cls.id : null);
+});
+
+document.getElementById('btn-add-class').addEventListener('click', () => {
+  const name = prompt('Class name:');
+  if (!name || !name.trim()) return;
+  addClass(name.trim());
+});
+
+document.getElementById('btn-add-enum').addEventListener('click', () => {
+  const name = prompt('Enum class name:');
+  if (!name || !name.trim()) return;
+  addEnumClass(name.trim());
+});
+
+// Left divider resize
+const dividerLeft = document.getElementById('divider-left');
+const leftPanel   = document.getElementById('left-panel');
+let draggingLeftDivider = false;
+
+dividerLeft.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  draggingLeftDivider = true;
+  dividerLeft.classList.add('dragging');
+  document.body.style.cursor = 'col-resize';
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!draggingLeftDivider) return;
+  const mainRect = document.getElementById('main-area').getBoundingClientRect();
+  const panelW = Math.max(140, Math.min(mainRect.width * 0.3, e.clientX - mainRect.left));
+  leftPanel.style.width = `${panelW}px`;
+});
+
+document.addEventListener('mouseup', () => {
+  if (!draggingLeftDivider) return;
+  draggingLeftDivider = false;
+  dividerLeft.classList.remove('dragging');
+  document.body.style.cursor = '';
+});
+
 // ── Initialise ───────────────────────────────────────────────────────────────
 
 applyTransform();
@@ -515,7 +574,7 @@ applyTransform();
 // ── Re-exports (facade for tests) ───────────────────────────────────────────
 
 export { S } from './state.js';
-export { WORLD_W, WORLD_H, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP, NODE_DEFAULTS, NODE_MIN_SIZE } from './config.js';
+export { WORLD_W, WORLD_H, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP, NODE_DEFAULTS, NODE_MIN_SIZE, PROPERTY_TYPES } from './config.js';
 export { canvasContainer, canvasEl, connSvg, minimapEl } from './dom-refs.js';
 export { applyTransform, zoomAround, clientToWorld, relativeToContainer, fitAll } from './transform.js';
 export { refreshMinimap, getMinimapBounds, getMinimapScales } from './minimap.js';
@@ -527,4 +586,8 @@ export { createConnection, deleteConnection } from './connections/conn-model.js'
 export { updateConnection } from './connections/conn-render.js';
 export { selectConn, deselectConn } from './connections/conn-selection.js';
 export { getBorderPoint, getPairPerpendicular } from './connections/geometry.js';
-export { updateInspector } from './inspector.js';
+export { updateInspector, serialiseDiagram } from './inspector.js';
+export { initDefaults } from './state.js';
+export { renderLeftPanel, selectObject, addObject, addClass, addEnumClass,
+         deleteObject, deleteClass, deleteEnumClass,
+         selectClassInPanel, selectEnumInPanel, saveActiveObjectChart } from './left-panel.js';

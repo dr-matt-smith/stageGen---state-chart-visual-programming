@@ -780,3 +780,265 @@ describe('Theme toggle', () => {
     }
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V44 — Objects, Classes, Enum Classes
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Default state initialisation ─────────────────────────────────────────────
+
+describe('V44: Default state', () => {
+  it('has a default game object', () => {
+    const game = app.S.objects.find(o => o.name === 'game');
+    expect(game).toBeTruthy();
+    expect(game.builtIn).toBe(true);
+  });
+
+  it('has a default Game class with 3 properties', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    expect(cls).toBeTruthy();
+    expect(cls.builtIn).toBe(true);
+    expect(cls.properties.length).toBe(3);
+    expect(cls.properties.map(p => p.name)).toEqual(['name', 'description', 'category']);
+  });
+
+  it('has a default GameType enum class with 5 values', () => {
+    const en = app.S.enumClasses.find(e => e.name === 'GameType');
+    expect(en).toBeTruthy();
+    expect(en.builtIn).toBe(true);
+    expect(en.values).toEqual(['ARCADE', 'PLATFORMER', 'SHOOTER', 'PUZZLE', 'OTHER']);
+  });
+
+  it('game object is linked to Game class', () => {
+    const game = app.S.objects.find(o => o.name === 'game');
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    expect(game.classId).toBe(cls.id);
+  });
+
+  it('Game class category property references GameType enum', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    const catProp = cls.properties.find(p => p.name === 'category');
+    expect(catProp.type).toBe('EnumClass');
+    const en = app.S.enumClasses.find(e => e.name === 'GameType');
+    expect(catProp.enumClassId).toBe(en.id);
+  });
+
+  it('activeObjectId is set to the game object', () => {
+    const game = app.S.objects.find(o => o.name === 'game');
+    expect(app.S.activeObjectId).toBe(game.id);
+  });
+});
+
+// ─── Left panel rendering ─────────────────────────────────────────────────────
+
+describe('V44: Left panel rendering', () => {
+  it('objects list contains game object', () => {
+    const items = document.querySelectorAll('#objects-list .left-panel-item');
+    expect(items.length).toBeGreaterThanOrEqual(1);
+    expect(items[0].textContent).toContain('game');
+  });
+
+  it('classes list contains Game class', () => {
+    const items = document.querySelectorAll('#classes-list .left-panel-item');
+    expect(items.length).toBeGreaterThanOrEqual(1);
+    expect(items[0].textContent).toContain('Game');
+  });
+
+  it('enums list contains GameType', () => {
+    const items = document.querySelectorAll('#enums-list .left-panel-item');
+    expect(items.length).toBeGreaterThanOrEqual(1);
+    expect(items[0].textContent).toContain('GameType');
+  });
+
+  it('game object has no delete button (builtIn)', () => {
+    const item = document.querySelector('#objects-list .left-panel-item');
+    expect(item.querySelector('.left-panel-delete-btn')).toBeNull();
+  });
+});
+
+// ─── Adding objects, classes, enums ───────────────────────────────────────────
+
+describe('V44: Add operations', () => {
+  it('addObject creates a new object', () => {
+    const before = app.S.objects.length;
+    app.addObject('ship', app.S.classes[0].id);
+    expect(app.S.objects.length).toBe(before + 1);
+    const obj = app.S.objects.find(o => o.name === 'ship');
+    expect(obj).toBeTruthy();
+    expect(obj.builtIn).toBe(false);
+  });
+
+  it('addClass creates a new class with empty properties', () => {
+    const before = app.S.classes.length;
+    app.addClass('Sprite');
+    expect(app.S.classes.length).toBe(before + 1);
+    const cls = app.S.classes.find(c => c.name === 'Sprite');
+    expect(cls).toBeTruthy();
+    expect(cls.properties).toEqual([]);
+    expect(cls.builtIn).toBe(false);
+  });
+
+  it('addEnumClass creates a new enum class with empty values', () => {
+    const before = app.S.enumClasses.length;
+    app.addEnumClass('Fruits');
+    expect(app.S.enumClasses.length).toBe(before + 1);
+    const en = app.S.enumClasses.find(e => e.name === 'Fruits');
+    expect(en).toBeTruthy();
+    expect(en.values).toEqual([]);
+    expect(en.builtIn).toBe(false);
+  });
+});
+
+// ─── Delete operations ────────────────────────────────────────────────────────
+
+describe('V44: Delete operations', () => {
+  it('cannot delete the built-in game object', () => {
+    const game = app.S.objects.find(o => o.name === 'game');
+    const result = app.deleteObject(game.id);
+    expect(result).toBe(false);
+    expect(app.S.objects.find(o => o.name === 'game')).toBeTruthy();
+  });
+
+  it('can delete a non-built-in object', () => {
+    const obj = app.addObject('temp');
+    const before = app.S.objects.length;
+    const result = app.deleteObject(obj.id);
+    expect(result).toBe(true);
+    expect(app.S.objects.length).toBe(before - 1);
+  });
+
+  it('cannot delete a built-in class', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    const result = app.deleteClass(cls.id);
+    expect(result).toBe(false);
+    expect(app.S.classes.find(c => c.name === 'Game')).toBeTruthy();
+  });
+
+  it('can delete a non-built-in class', () => {
+    const cls = app.addClass('TempClass');
+    const before = app.S.classes.length;
+    const result = app.deleteClass(cls.id);
+    expect(result).toBe(true);
+    expect(app.S.classes.length).toBe(before - 1);
+  });
+
+  it('cannot delete a built-in enum class', () => {
+    const en = app.S.enumClasses.find(e => e.name === 'GameType');
+    const result = app.deleteEnumClass(en.id);
+    expect(result).toBe(false);
+    expect(app.S.enumClasses.find(e => e.name === 'GameType')).toBeTruthy();
+  });
+
+  it('can delete a non-built-in enum class', () => {
+    const en = app.addEnumClass('TempEnum');
+    const before = app.S.enumClasses.length;
+    const result = app.deleteEnumClass(en.id);
+    expect(result).toBe(true);
+    expect(app.S.enumClasses.length).toBe(before - 1);
+  });
+});
+
+// ─── Object switching ─────────────────────────────────────────────────────────
+
+describe('V44: Object switching', () => {
+  it('switching objects changes activeObjectId', () => {
+    const obj2 = app.addObject('obj2');
+    app.selectObject(obj2.id);
+    expect(app.S.activeObjectId).toBe(obj2.id);
+    // Switch back to game
+    const game = app.S.objects.find(o => o.name === 'game');
+    app.selectObject(game.id);
+    expect(app.S.activeObjectId).toBe(game.id);
+  });
+
+  it('nodes created in one object do not appear in another', () => {
+    const game = app.S.objects.find(o => o.name === 'game');
+    app.selectObject(game.id);
+    app.createNode('state', 100, 100);
+    const countInGame = app.S.nodes.length;
+    expect(countInGame).toBeGreaterThanOrEqual(1);
+
+    const obj2 = app.addObject('obj_switch_test');
+    app.selectObject(obj2.id);
+    expect(app.S.nodes.length).toBe(0);
+
+    // Switch back and verify nodes are restored
+    app.selectObject(game.id);
+    expect(app.S.nodes.length).toBe(countInGame);
+  });
+});
+
+// ─── Inspector shows class / enum ─────────────────────────────────────────────
+
+describe('V44: Inspector for classes and enums', () => {
+  it('selecting a class shows its properties in inspector', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    app.selectClassInPanel(cls.id);
+    expect(app.S.selectedLeftPanelItem).toEqual({ kind: 'class', id: cls.id });
+    const props = document.getElementById('inspector-props');
+    expect(props.style.display).not.toBe('none');
+    // Should contain property name inputs
+    const inputs = props.querySelectorAll('input.inspector-input');
+    expect(inputs.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('selecting an enum shows its values in inspector', () => {
+    const en = app.S.enumClasses.find(e => e.name === 'GameType');
+    app.selectEnumInPanel(en.id);
+    expect(app.S.selectedLeftPanelItem).toEqual({ kind: 'enum', id: en.id });
+    const props = document.getElementById('inspector-props');
+    expect(props.style.display).not.toBe('none');
+  });
+
+  it('selecting a node clears selectedLeftPanelItem', () => {
+    app.selectClassInPanel(app.S.classes[0].id);
+    const node = app.createNode('state', 200, 200);
+    app.activateNode(node);
+    // activeNode takes priority in inspector
+    expect(app.S.activeNode).toBe(node);
+  });
+});
+
+// ─── Property types ───────────────────────────────────────────────────────────
+
+describe('V44: Property types', () => {
+  it('PROPERTY_TYPES includes all expected types', () => {
+    const expected = ['Integer', 'Real', 'Character', 'String', 'Boolean', 'EnumClass', 'Image', 'Sound', 'Object'];
+    for (const t of expected) {
+      expect(app.PROPERTY_TYPES).toContain(t);
+    }
+  });
+});
+
+// ─── JSON export includes V44 data ────────────────────────────────────────────
+
+describe('V44: JSON export', () => {
+  it('serialiseDiagram includes objects, classes, and enumClasses', () => {
+    // Need to import serialiseDiagram
+    const json = app.serialiseDiagram();
+    expect(json.objects).toBeTruthy();
+    expect(json.classes).toBeTruthy();
+    expect(json.enumClasses).toBeTruthy();
+    expect(json.objects.length).toBeGreaterThanOrEqual(1);
+    expect(json.classes.length).toBeGreaterThanOrEqual(1);
+    expect(json.enumClasses.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V45 — Zoom toolbar inside canvas stage
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V45: Zoom toolbar inside canvas', () => {
+  it('zoom toolbar is a child of canvas-container', () => {
+    const canvasContainer = document.getElementById('canvas-container');
+    const zoomToolbar = document.getElementById('zoom-toolbar');
+    expect(canvasContainer.contains(zoomToolbar)).toBe(true);
+  });
+
+  it('zoom toolbar is NOT a direct child of body', () => {
+    const zoomToolbar = document.getElementById('zoom-toolbar');
+    expect(zoomToolbar.parentElement.id).not.toBe('body');
+    expect(zoomToolbar.closest('#canvas-container')).toBeTruthy();
+  });
+});

@@ -419,8 +419,8 @@ test.describe('V7 – Minimap minimize/restore', () => {
 // ─── Version 8: Zoom toolbar ──────────────────────────────────────────────
 
 test.describe('V8 – Zoom toolbar', () => {
-  test('zoom toolbar is visible at bottom-left', async ({ page }) => {
-    await expect(page.locator('#zoom-toolbar')).toBeVisible();
+  test('zoom toolbar is visible inside the canvas area', async ({ page }) => {
+    await expect(page.locator('#canvas-container #zoom-toolbar')).toBeVisible();
   });
 
   test('zoom slider is present', async ({ page }) => {
@@ -762,16 +762,242 @@ test.describe('Theme toggle', () => {
     await expect(page.locator('#btn-theme-toggle')).toBeVisible();
   });
 
-  test('clicking theme toggle switches to light theme', async ({ page }) => {
+  test('clicking theme toggle switches to dark theme', async ({ page }) => {
+    // Default is light, so first click switches to dark
+    await page.locator('#btn-theme-toggle').click();
+    const theme = await page.locator('html').getAttribute('data-theme');
+    expect(theme).toBeNull();
+  });
+
+  test('clicking theme toggle twice returns to light theme', async ({ page }) => {
+    await page.locator('#btn-theme-toggle').click();
     await page.locator('#btn-theme-toggle').click();
     const theme = await page.locator('html').getAttribute('data-theme');
     expect(theme).toBe('light');
   });
+});
 
-  test('clicking theme toggle twice returns to dark theme', async ({ page }) => {
-    await page.locator('#btn-theme-toggle').click();
-    await page.locator('#btn-theme-toggle').click();
-    const theme = await page.locator('html').getAttribute('data-theme');
-    expect(theme).toBeNull();
+// ═══════════════════════════════════════════════════════════════════════════════
+// V44 — Left Panel, Objects, Classes, Enum Classes
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('V44: Left panel visibility', () => {
+  test('left panel is visible with three sections', async ({ page }) => {
+    await expect(page.locator('#left-panel')).toBeVisible();
+    await expect(page.locator('.left-panel-section')).toHaveCount(3);
+  });
+
+  test('objects list contains default game object', async ({ page }) => {
+    const items = page.locator('#objects-list .left-panel-item');
+    await expect(items).toHaveCount(1);
+    await expect(items.first()).toContainText('game');
+  });
+
+  test('classes list contains default Game class', async ({ page }) => {
+    const items = page.locator('#classes-list .left-panel-item');
+    await expect(items).toHaveCount(1);
+    await expect(items.first()).toContainText('Game');
+  });
+
+  test('enums list contains default GameType', async ({ page }) => {
+    const items = page.locator('#enums-list .left-panel-item');
+    await expect(items).toHaveCount(1);
+    await expect(items.first()).toContainText('GameType');
+  });
+
+  test('game object has no delete button', async ({ page }) => {
+    const item = page.locator('#objects-list .left-panel-item').first();
+    await expect(item.locator('.left-panel-delete-btn')).toHaveCount(0);
+  });
+
+  test('add object button is visible', async ({ page }) => {
+    await expect(page.locator('#btn-add-object')).toBeVisible();
+  });
+
+  test('add class button is visible', async ({ page }) => {
+    await expect(page.locator('#btn-add-class')).toBeVisible();
+  });
+
+  test('add enum button is visible', async ({ page }) => {
+    await expect(page.locator('#btn-add-enum')).toBeVisible();
+  });
+});
+
+test.describe('V44: Add operations via prompt', () => {
+  test('clicking + on Objects creates a new object', async ({ page }) => {
+    // Mock the prompts
+    await page.evaluate(() => {
+      let callCount = 0;
+      window._origPrompt = window.prompt;
+      window.prompt = (msg) => {
+        callCount++;
+        if (callCount === 1) return 'enemy';   // object name
+        if (callCount === 2) return 'Game';      // class name
+        return null;
+      };
+    });
+    await page.locator('#btn-add-object').click();
+    await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(2);
+    await expect(page.locator('#objects-list .left-panel-item').nth(1)).toContainText('enemy');
+    await page.evaluate(() => { window.prompt = window._origPrompt; });
+  });
+
+  test('clicking + on Classes creates a new class', async ({ page }) => {
+    await page.evaluate(() => {
+      window._origPrompt = window.prompt;
+      window.prompt = () => 'Sprite';
+    });
+    await page.locator('#btn-add-class').click();
+    const items = page.locator('#classes-list .left-panel-item');
+    const count = await items.count();
+    await expect(items.nth(count - 1)).toContainText('Sprite');
+    await page.evaluate(() => { window.prompt = window._origPrompt; });
+  });
+
+  test('clicking + on Enum Classes creates a new enum class', async ({ page }) => {
+    await page.evaluate(() => {
+      window._origPrompt = window.prompt;
+      window.prompt = () => 'Direction';
+    });
+    await page.locator('#btn-add-enum').click();
+    const items = page.locator('#enums-list .left-panel-item');
+    const count = await items.count();
+    await expect(items.nth(count - 1)).toContainText('Direction');
+    await page.evaluate(() => { window.prompt = window._origPrompt; });
+  });
+});
+
+test.describe('V44: Class inspector', () => {
+  test('clicking a class shows its properties in inspector', async ({ page }) => {
+    await page.locator('#classes-list .left-panel-item').first().click();
+    // Inspector should show properties including Name input
+    await expect(page.locator('#inspector-props')).toBeVisible();
+    const inputs = page.locator('#inspector-props input.inspector-input');
+    // At least: class name + 3 property name inputs = 4
+    const count = await inputs.count();
+    expect(count).toBeGreaterThanOrEqual(4);
+  });
+
+  test('class inspector shows Add Property button', async ({ page }) => {
+    await page.locator('#classes-list .left-panel-item').first().click();
+    await expect(page.locator('button:has-text("+ Add Property")')).toBeVisible();
+  });
+
+  test('clicking Add Property adds a new property row', async ({ page }) => {
+    await page.locator('#classes-list .left-panel-item').first().click();
+    const beforeCount = await page.locator('#inspector-props input.inspector-input').count();
+    await page.locator('button:has-text("+ Add Property")').click();
+    const afterCount = await page.locator('#inspector-props input.inspector-input').count();
+    expect(afterCount).toBe(beforeCount + 1);
+  });
+
+  test('property type dropdown contains all expected types', async ({ page }) => {
+    await page.locator('#classes-list .left-panel-item').first().click();
+    const select = page.locator('#inspector-props select.inspector-select').first();
+    const options = await select.locator('option').allTextContents();
+    expect(options).toContain('String');
+    expect(options).toContain('Integer');
+    expect(options).toContain('Boolean');
+    expect(options).toContain('Enum Class');
+    expect(options).toContain('Image');
+    expect(options).toContain('Sound');
+    expect(options).toContain('Object');
+  });
+});
+
+test.describe('V44: Enum class inspector', () => {
+  test('clicking an enum class shows its values in inspector', async ({ page }) => {
+    await page.locator('#enums-list .left-panel-item').first().click();
+    await expect(page.locator('#inspector-props')).toBeVisible();
+    // GameType has 5 values + name input = at least 6 inputs
+    const inputs = page.locator('#inspector-props input.inspector-input');
+    const count = await inputs.count();
+    expect(count).toBeGreaterThanOrEqual(6);
+  });
+
+  test('enum values are displayed in uppercase', async ({ page }) => {
+    await page.locator('#enums-list .left-panel-item').first().click();
+    // The first value after the name input should be ARCADE
+    const inputs = page.locator('#inspector-props input.inspector-input');
+    const secondInput = inputs.nth(1);
+    const val = await secondInput.inputValue();
+    expect(val).toBe('ARCADE');
+  });
+
+  test('enum inspector shows Add Value button', async ({ page }) => {
+    await page.locator('#enums-list .left-panel-item').first().click();
+    await expect(page.locator('button:has-text("+ Add Value")')).toBeVisible();
+  });
+
+  test('typing lowercase in enum value converts to uppercase', async ({ page }) => {
+    await page.locator('#enums-list .left-panel-item').first().click();
+    await page.locator('button:has-text("+ Add Value")').click();
+    const inputs = page.locator('#inspector-props input.inspector-input');
+    const lastInput = inputs.last();
+    await lastInput.fill('');
+    await lastInput.type('apple');
+    const val = await lastInput.inputValue();
+    expect(val).toBe('APPLE');
+  });
+});
+
+test.describe('V44: Object switching', () => {
+  test('creating a node in one object and switching shows empty canvas', async ({ page }) => {
+    // Create a state node in game object
+    await dragNewNode(page, '#btn-new-state');
+    await expect(page.locator('.state-node')).toHaveCount(1);
+
+    // Add a second object
+    await page.evaluate(() => {
+      let callCount = 0;
+      window._origPrompt = window.prompt;
+      window.prompt = (msg) => {
+        callCount++;
+        if (callCount === 1) return 'obj2';
+        if (callCount === 2) return 'Game';
+        return null;
+      };
+    });
+    await page.locator('#btn-add-object').click();
+    await page.evaluate(() => { window.prompt = window._origPrompt; });
+
+    // Click the new object to switch
+    await page.locator('#objects-list .left-panel-item').nth(1).click();
+
+    // Canvas should be empty
+    await expect(page.locator('.state-node')).toHaveCount(0);
+
+    // Switch back to game
+    await page.locator('#objects-list .left-panel-item').first().click();
+    await expect(page.locator('.state-node')).toHaveCount(1);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V45 — Zoom toolbar inside canvas stage
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('V45: Zoom toolbar inside canvas', () => {
+  test('zoom toolbar is a child of the canvas container', async ({ page }) => {
+    await expect(page.locator('#canvas-container > #zoom-toolbar')).toBeVisible();
+  });
+
+  test('zoom toolbar is NOT a direct child of body or main-area', async ({ page }) => {
+    await expect(page.locator('body > #zoom-toolbar')).toHaveCount(0);
+    await expect(page.locator('#main-area > #zoom-toolbar')).toHaveCount(0);
+  });
+
+  test('zoom toolbar is positioned inside the canvas bounds', async ({ page }) => {
+    const canvasBox = await page.locator('#canvas-container').boundingBox();
+    const toolbarBox = await page.locator('#zoom-toolbar').boundingBox();
+    expect(toolbarBox.x).toBeGreaterThanOrEqual(canvasBox.x);
+    expect(toolbarBox.y).toBeGreaterThanOrEqual(canvasBox.y);
+    expect(toolbarBox.x + toolbarBox.width).toBeLessThanOrEqual(canvasBox.x + canvasBox.width);
+  });
+
+  test('zoom toolbar does not overlap the left panel', async ({ page }) => {
+    const leftPanelBox = await page.locator('#left-panel').boundingBox();
+    const toolbarBox = await page.locator('#zoom-toolbar').boundingBox();
+    expect(toolbarBox.x).toBeGreaterThanOrEqual(leftPanelBox.x + leftPanelBox.width);
   });
 });

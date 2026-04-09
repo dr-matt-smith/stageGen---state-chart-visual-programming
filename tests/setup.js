@@ -10,19 +10,34 @@ export function setupDOM() {
       <button id="btn-new-end" class="toolbar-btn palette-btn" draggable="false"></button>
       <button id="btn-new-choice" class="toolbar-btn palette-btn" draggable="false"></button>
     </div>
-    <div id="zoom-toolbar">
-      <button id="btn-fit-all" class="toolbar-btn"></button>
-      <button id="btn-zoom-out" class="toolbar-btn"></button>
-      <input id="zoom-slider" type="range" min="8" max="500" value="100">
-      <button id="btn-zoom-in" class="toolbar-btn"></button>
-      <span id="zoom-label" class="zoom-label">100%</span>
-      <button id="btn-hand-tool" class="toolbar-btn tool-btn"></button>
-      <button id="btn-theme-toggle" class="toolbar-btn">&#9788; Light</button>
-    </div>
     <div id="main-area">
+      <div id="left-panel">
+        <div class="left-panel-section">
+          <div class="left-panel-header"><span>Objects</span><button id="btn-add-object" class="left-panel-add-btn">+</button></div>
+          <div id="objects-list" class="left-panel-list"></div>
+        </div>
+        <div class="left-panel-section">
+          <div class="left-panel-header"><span>Classes</span><button id="btn-add-class" class="left-panel-add-btn">+</button></div>
+          <div id="classes-list" class="left-panel-list"></div>
+        </div>
+        <div class="left-panel-section">
+          <div class="left-panel-header"><span>Enum Classes</span><button id="btn-add-enum" class="left-panel-add-btn">+</button></div>
+          <div id="enums-list" class="left-panel-list"></div>
+        </div>
+      </div>
+      <div id="divider-left"></div>
       <div id="canvas-container" style="width:800px;height:600px;">
         <div id="canvas" style="width:4000px;height:3000px;">
           <svg id="connections-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div id="zoom-toolbar">
+          <button id="btn-fit-all" class="toolbar-btn"></button>
+          <button id="btn-zoom-out" class="toolbar-btn"></button>
+          <input id="zoom-slider" type="range" min="8" max="500" value="100">
+          <button id="btn-zoom-in" class="toolbar-btn"></button>
+          <span id="zoom-label" class="zoom-label">100%</span>
+          <button id="btn-hand-tool" class="toolbar-btn tool-btn"></button>
+          <button id="btn-theme-toggle" class="toolbar-btn">&#9788; Light</button>
         </div>
         <div id="canvas-overlay-buttons">
           <button id="btn-export-json" class="toolbar-btn">Export JSON</button>

@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="src/css/connectors.css">
   <link rel="stylesheet" href="src/css/minimap.css">
   <link rel="stylesheet" href="src/css/inspector.css">
+  <link rel="stylesheet" href="src/css/left-panel.css">
   <link rel="stylesheet" href="src/css/settings.css">
 </head>
 <body>
@@ -58,59 +59,87 @@
 
   </div>
 
-  <!-- ── Zoom toolbar (bottom-left) ──────────────────────────────────────── -->
-  <div id="zoom-toolbar">
-    <button id="btn-fit-all" class="toolbar-btn" title="Fit All – zoom to show all diagram elements (F)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <polyline points="15 3 21 3 21 9"/>
-        <polyline points="9 21 3 21 3 15"/>
-        <line x1="21" y1="3" x2="14" y2="10"/>
-        <line x1="3"  y1="21" x2="10" y2="14"/>
-      </svg>
-    </button>
-
-    <div class="toolbar-sep"></div>
-
-    <button id="btn-zoom-out" class="toolbar-btn" title="Zoom Out (-)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
-    </button>
-
-    <input id="zoom-slider" type="range" min="8" max="500" value="100" title="Zoom slider">
-
-    <button id="btn-zoom-in" class="toolbar-btn" title="Zoom In (= or +)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <line x1="12" y1="5" x2="12" y2="19"/>
-        <line x1="5"  y1="12" x2="19" y2="12"/>
-      </svg>
-    </button>
-
-    <span id="zoom-label" class="zoom-label">100%</span>
-
-    <div class="toolbar-sep"></div>
-
-    <button id="btn-hand-tool" class="toolbar-btn tool-btn" title="Hand Tool – pan canvas (H or middle-mouse drag)">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v1M10 5V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/>
-        <path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
-      </svg>
-    </button>
-
-    <div style="flex:1"></div>
-    <button id="btn-theme-toggle" class="toolbar-btn" title="Toggle light/dark theme">&#9788; Light</button>
-  </div>
-
-  <!-- ── Main area (canvas + divider + inspector) ─────────────────────── -->
+  <!-- ── Main area (left panel + canvas + divider + inspector) ────────── -->
   <div id="main-area">
+
+    <!-- ── Left panel (objects / classes / enums) ──────────────────────── -->
+    <div id="left-panel">
+      <div class="left-panel-section">
+        <div class="left-panel-header">
+          <span>Objects</span>
+          <button id="btn-add-object" class="left-panel-add-btn" title="Add object">+</button>
+        </div>
+        <div id="objects-list" class="left-panel-list"></div>
+      </div>
+      <div class="left-panel-section">
+        <div class="left-panel-header">
+          <span>Classes</span>
+          <button id="btn-add-class" class="left-panel-add-btn" title="Add class">+</button>
+        </div>
+        <div id="classes-list" class="left-panel-list"></div>
+      </div>
+      <div class="left-panel-section">
+        <div class="left-panel-header">
+          <span>Enum Classes</span>
+          <button id="btn-add-enum" class="left-panel-add-btn" title="Add enum class">+</button>
+        </div>
+        <div id="enums-list" class="left-panel-list"></div>
+      </div>
+    </div>
+    <div id="divider-left"></div>
+
     <div id="canvas-container">
       <div id="canvas">
         <svg id="connections-svg" xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
+
+      <!-- ── Zoom toolbar (top-left of canvas) ───────────────────────────── -->
+      <div id="zoom-toolbar">
+        <button id="btn-fit-all" class="toolbar-btn" title="Fit All – zoom to show all diagram elements (F)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="15 3 21 3 21 9"/>
+            <polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/>
+            <line x1="3"  y1="21" x2="10" y2="14"/>
+          </svg>
+        </button>
+
+        <div class="toolbar-sep"></div>
+
+        <button id="btn-zoom-out" class="toolbar-btn" title="Zoom Out (-)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+
+        <input id="zoom-slider" type="range" min="8" max="500" value="100" title="Zoom slider">
+
+        <button id="btn-zoom-in" class="toolbar-btn" title="Zoom In (= or +)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5"  y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+
+        <span id="zoom-label" class="zoom-label">100%</span>
+
+        <div class="toolbar-sep"></div>
+
+        <button id="btn-hand-tool" class="toolbar-btn tool-btn" title="Hand Tool – pan canvas (H or middle-mouse drag)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v1M10 5V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/>
+            <path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+          </svg>
+        </button>
+
+        <div style="flex:1"></div>
+        <button id="btn-theme-toggle" class="toolbar-btn" title="Toggle light/dark theme">&#9788; Light</button>
+      </div>
+
       <div id="canvas-overlay-buttons">
         <button id="btn-export-json" class="toolbar-btn canvas-overlay-btn" title="Export diagram as JSON">Export JSON</button>
       </div>

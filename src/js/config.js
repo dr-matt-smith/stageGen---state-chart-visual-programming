@@ -19,3 +19,8 @@ export const NODE_MIN_SIZE = {
 };
 
 export const CURVE_STEP = 90;
+
+export const PROPERTY_TYPES = [
+  'Integer', 'Real', 'Character', 'String', 'Boolean',
+  'EnumClass', 'Image', 'Sound', 'Object',
+];

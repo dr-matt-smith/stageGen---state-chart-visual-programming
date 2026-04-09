@@ -170,6 +170,22 @@
   min-height: 40px;
 }
 
+.inspector-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  float: right;
+  transition: color 0.12s;
+}
+
+.inspector-delete-btn:hover {
+  color: #ef4444;
+}
+
 /* ── JSON export modal ─────────────────────────────────────────────────────── */
 #json-modal-overlay {
   position: fixed;
