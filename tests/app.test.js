@@ -1286,3 +1286,73 @@ describe('V48: Edit Classes button and mode switching', () => {
     expect(app.S.activeObjectId).not.toBeNull();
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V49 — Image/Sound dropdown lists
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V49: Asset manifests', () => {
+  it('imageFiles is an array with image paths', () => {
+    expect(Array.isArray(app.imageFiles)).toBe(true);
+    expect(app.imageFiles.length).toBeGreaterThan(0);
+    expect(app.imageFiles.every(f => f.startsWith('images/'))).toBe(true);
+  });
+
+  it('audioFiles is an array with audio paths', () => {
+    expect(Array.isArray(app.audioFiles)).toBe(true);
+    expect(app.audioFiles.length).toBeGreaterThan(0);
+    expect(app.audioFiles.every(f => f.startsWith('audio/'))).toBe(true);
+  });
+
+  it('imageFiles contains files from subfolders', () => {
+    const hasSubfolder = app.imageFiles.some(f => f.split('/').length > 2);
+    expect(hasSubfolder).toBe(true);
+  });
+
+  it('audioFiles contains files from subfolders', () => {
+    const hasSubfolder = app.audioFiles.some(f => f.split('/').length > 2);
+    expect(hasSubfolder).toBe(true);
+  });
+});
+
+describe('V49: Image/Sound property dropdowns in data panel', () => {
+  it('Image property renders as a select dropdown', () => {
+    // Create a class with an Image property, an object of that class, and select it
+    const cls = app.addClass('SpriteV49');
+    cls.properties.push({ name: 'icon', type: 'Image' });
+    const obj = app.addObject('v49obj', cls.id);
+    app.selectObject(obj.id);
+
+    const selects = document.querySelectorAll('#object-props-list select.asset-dropdown');
+    expect(selects.length).toBeGreaterThanOrEqual(1);
+    // Should have options for image files plus the placeholder
+    const opts = selects[0].options;
+    expect(opts.length).toBeGreaterThan(1);
+    expect(opts[0].textContent).toContain('select image');
+  });
+
+  it('Sound property renders as a select dropdown', () => {
+    const cls = app.addClass('AudioV49');
+    cls.properties.push({ name: 'sfx', type: 'Sound' });
+    const obj = app.addObject('v49snd', cls.id);
+    app.selectObject(obj.id);
+
+    const selects = document.querySelectorAll('#object-props-list select.asset-dropdown');
+    expect(selects.length).toBeGreaterThanOrEqual(1);
+    const opts = Array.from(selects).pop().options;
+    expect(opts.length).toBeGreaterThan(1);
+    expect(opts[0].textContent).toContain('select sound');
+  });
+
+  it('selecting an image file stores the value', () => {
+    const cls = app.S.classes.find(c => c.name === 'SpriteV49');
+    const obj = app.S.objects.find(o => o.name === 'v49obj');
+    app.selectObject(obj.id);
+
+    const sel = document.querySelector('#object-props-list select.asset-dropdown');
+    // Pick the second option (first real file)
+    sel.value = sel.options[1].value;
+    sel.dispatchEvent(new Event('change'));
+    expect(obj.propertyValues.icon).toBe(sel.options[1].value);
+  });
+});

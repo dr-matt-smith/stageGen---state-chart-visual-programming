@@ -1296,3 +1296,92 @@ test.describe('V48: Class CRUD in class mode', () => {
     await expect(page.locator('#enums-list .left-panel-item')).toHaveCount(beforeCount + 1);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V49 — Image/Sound dropdown lists
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('V49: Image/Sound property dropdowns', () => {
+  test('Image property shows a dropdown of image files', async ({ page }) => {
+    // Switch to class mode, create a class with Image property
+    await page.locator('#btn-edit-classes').click();
+    await page.evaluate(() => {
+      window._origPrompt = window.prompt;
+      window.prompt = () => 'ImgClass';
+    });
+    await page.locator('#btn-add-class').click();
+    await page.evaluate(() => { window.prompt = window._origPrompt; });
+
+    // Click the new class, add an Image property
+    await page.locator('#classes-list .left-panel-item').last().click();
+    await page.locator('button:has-text("+ Add Property")').click();
+
+    // Change the new property type to Image
+    const lastTypeSelect = page.locator('#inspector-props select.inspector-select').last();
+    await lastTypeSelect.selectOption('Image');
+
+    // Create an object of ImgClass
+    await page.evaluate(() => document.getElementById('objects-header').click());
+    await addObjectViaForm(page, 'imgObj', 'ImgClass');
+    await page.locator('#objects-list .left-panel-item').last().click();
+
+    // The property should render as a select dropdown with image files
+    const dropdown = page.locator('#object-props-list select.asset-dropdown');
+    await expect(dropdown).toBeVisible();
+    const optCount = await dropdown.locator('option').count();
+    // Should have placeholder + at least some image files
+    expect(optCount).toBeGreaterThan(1);
+  });
+
+  test('Sound property shows a dropdown of audio files', async ({ page }) => {
+    await page.locator('#btn-edit-classes').click();
+    await page.evaluate(() => {
+      window._origPrompt = window.prompt;
+      window.prompt = () => 'SndClass';
+    });
+    await page.locator('#btn-add-class').click();
+    await page.evaluate(() => { window.prompt = window._origPrompt; });
+
+    await page.locator('#classes-list .left-panel-item').last().click();
+    await page.locator('button:has-text("+ Add Property")').click();
+    const lastTypeSelect = page.locator('#inspector-props select.inspector-select').last();
+    await lastTypeSelect.selectOption('Sound');
+
+    await page.evaluate(() => document.getElementById('objects-header').click());
+    await addObjectViaForm(page, 'sndObj', 'SndClass');
+    await page.locator('#objects-list .left-panel-item').last().click();
+
+    const dropdown = page.locator('#object-props-list select.asset-dropdown');
+    await expect(dropdown).toBeVisible();
+    const optCount = await dropdown.locator('option').count();
+    expect(optCount).toBeGreaterThan(1);
+    // First option should be the placeholder
+    const firstOpt = await dropdown.locator('option').first().textContent();
+    expect(firstOpt).toContain('select sound');
+  });
+
+  test('image dropdown contains files from subfolders', async ({ page }) => {
+    await page.locator('#btn-edit-classes').click();
+    await page.evaluate(() => {
+      window._origPrompt = window.prompt;
+      window.prompt = () => 'ImgClass2';
+    });
+    await page.locator('#btn-add-class').click();
+    await page.evaluate(() => { window.prompt = window._origPrompt; });
+
+    await page.locator('#classes-list .left-panel-item').last().click();
+    await page.locator('button:has-text("+ Add Property")').click();
+    const lastTypeSelect = page.locator('#inspector-props select.inspector-select').last();
+    await lastTypeSelect.selectOption('Image');
+
+    await page.evaluate(() => document.getElementById('objects-header').click());
+    await addObjectViaForm(page, 'imgObj2', 'ImgClass2');
+    await page.locator('#objects-list .left-panel-item').last().click();
+
+    const dropdown = page.locator('#object-props-list select.asset-dropdown');
+    const allOptions = await dropdown.locator('option').allTextContents();
+    // Should contain paths with subfolders like "images/potraits/..."
+    const hasSubfolder = allOptions.some(o => o.split('/').length > 2);
+    expect(hasSubfolder).toBe(true);
+  });
+});

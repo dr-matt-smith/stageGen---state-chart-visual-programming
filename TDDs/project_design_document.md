@@ -151,3 +151,15 @@ Version 48 - Editing classes and enum classes
 - ✅ Fixed CSS overlap issue where minimized sections intercepted pointer events on adjacent elements
 - ✅ Added 7 new Vitest unit tests (138 total)
 - ✅ Added 8 new Playwright e2e tests (125 total)
+
+
+Version 49 - Image/Sound dropdown lists
+==================
+
+- ✅ Object properties of type Image render as a dropdown of files from public/images/ (including subfolders)
+- ✅ Object properties of type Sound render as a dropdown of files from public/audio/ (including subfolders)
+- ✅ File lists are built at compile time using Vite's import.meta.glob (src/js/asset-manifest.js)
+- ✅ Dropdowns show a "-- select image/sound --" placeholder option
+- ✅ Selected file path is stored in the object's propertyValues
+- ✅ Added 7 new Vitest unit tests (145 total)
+- ✅ Added 3 new Playwright e2e tests (128 total)

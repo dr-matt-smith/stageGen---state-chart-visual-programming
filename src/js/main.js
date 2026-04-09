@@ -644,6 +644,7 @@ export { updateConnection } from './connections/conn-render.js';
 export { selectConn, deselectConn } from './connections/conn-selection.js';
 export { getBorderPoint, getPairPerpendicular } from './connections/geometry.js';
 export { updateInspector, serialiseDiagram } from './inspector.js';
+export { imageFiles, audioFiles } from './asset-manifest.js';
 export { initDefaults } from './state.js';
 export { renderLeftPanel, selectObject, deselectObject, enterClassMode, enterObjectMode,
          addObject, addClass, addEnumClass,

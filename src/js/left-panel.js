@@ -2,6 +2,7 @@
 
 import { S } from './state.js';
 import { PROPERTY_TYPES } from './config.js';
+import { imageFiles, audioFiles } from './asset-manifest.js';
 import { canvasEl, connSvg, mmStatesEl } from './dom-refs.js';
 import { refreshMinimap } from './minimap.js';
 import { applyTransform } from './transform.js';
@@ -220,6 +221,24 @@ function renderObjectProperties() {
           if (obj.propertyValues[prop.name] === v) opt.selected = true;
           sel.appendChild(opt);
         }
+      }
+      sel.addEventListener('change', () => { obj.propertyValues[prop.name] = sel.value; });
+      sel.addEventListener('keydown', (e) => e.stopPropagation());
+      valueDiv.appendChild(sel);
+    } else if (prop.type === 'Image' || prop.type === 'Sound') {
+      const files = prop.type === 'Image' ? imageFiles : audioFiles;
+      const sel = document.createElement('select');
+      sel.className = 'asset-dropdown';
+      const emptyOpt = document.createElement('option');
+      emptyOpt.value = '';
+      emptyOpt.textContent = `-- select ${prop.type.toLowerCase()} --`;
+      sel.appendChild(emptyOpt);
+      for (const f of files) {
+        const opt = document.createElement('option');
+        opt.value = f;
+        opt.textContent = f;
+        if (obj.propertyValues[prop.name] === f) opt.selected = true;
+        sel.appendChild(opt);
       }
       sel.addEventListener('change', () => { obj.propertyValues[prop.name] = sel.value; });
       sel.addEventListener('keydown', (e) => e.stopPropagation());
