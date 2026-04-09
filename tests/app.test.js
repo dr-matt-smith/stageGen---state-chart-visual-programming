@@ -1042,3 +1042,185 @@ describe('V45: Zoom toolbar inside canvas', () => {
     expect(zoomToolbar.closest('#canvas-container')).toBeTruthy();
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V46 — Data panel, object properties, state chart per object
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V46: Data panel title', () => {
+  it('left panel has a "Data" title', () => {
+    const title = document.getElementById('data-panel-title');
+    expect(title).toBeTruthy();
+    expect(title.textContent).toBe('Data');
+  });
+});
+
+describe('V46: Classes/Enums minimized when object selected', () => {
+  it('classes and enums sections are minimized when an object is active', () => {
+    const game = app.S.objects.find(o => o.name === 'game');
+    app.selectObject(game.id);
+    expect(app.S.activeObjectId).not.toBeNull();
+    const classes = document.getElementById('section-classes');
+    const enums = document.getElementById('section-enums');
+    expect(classes.classList.contains('minimized')).toBe(true);
+    expect(enums.classList.contains('minimized')).toBe(true);
+  });
+
+  it('classes and enums sections are expanded when no object is active', () => {
+    app.deselectObject();
+    app.renderLeftPanel();
+    const classes = document.getElementById('section-classes');
+    const enums = document.getElementById('section-enums');
+    expect(classes.classList.contains('minimized')).toBe(false);
+    expect(enums.classList.contains('minimized')).toBe(false);
+    // Re-select game to restore state
+    const game = app.S.objects.find(o => o.name === 'game');
+    app.selectObject(game.id);
+  });
+});
+
+describe('V46: Object properties in data panel', () => {
+  it('object properties section is visible when object is selected', () => {
+    const section = document.getElementById('section-object-props');
+    expect(section.style.display).not.toBe('none');
+  });
+
+  it('shows property rows matching the class properties', () => {
+    const rows = document.querySelectorAll('#object-props-list .object-prop-row');
+    // Game class has 3 properties: name, description, category
+    expect(rows.length).toBe(3);
+  });
+
+  it('property labels match class property names', () => {
+    const labels = document.querySelectorAll('#object-props-list .object-prop-label');
+    const names = Array.from(labels).map(l => l.textContent);
+    expect(names).toContain('name');
+    expect(names).toContain('description');
+    expect(names).toContain('category');
+  });
+
+  it('object properties section is hidden when no object is selected', () => {
+    app.deselectObject();
+    app.renderLeftPanel();
+    const section = document.getElementById('section-object-props');
+    expect(section.style.display).toBe('none');
+    // Restore
+    const game = app.S.objects.find(o => o.name === 'game');
+    app.selectObject(game.id);
+  });
+});
+
+describe('V46: Selecting class/enum deselects object', () => {
+  it('selecting a class deselects the active object', () => {
+    const game = app.S.objects.find(o => o.name === 'game');
+    app.selectObject(game.id);
+    expect(app.S.activeObjectId).toBe(game.id);
+
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    app.selectClassInPanel(cls.id);
+    expect(app.S.activeObjectId).toBeNull();
+    expect(app.S.selectedLeftPanelItem).toEqual({ kind: 'class', id: cls.id });
+  });
+
+  it('selecting an enum deselects the active object', () => {
+    const game = app.S.objects.find(o => o.name === 'game');
+    app.selectObject(game.id);
+
+    const en = app.S.enumClasses.find(e => e.name === 'GameType');
+    app.selectEnumInPanel(en.id);
+    expect(app.S.activeObjectId).toBeNull();
+    expect(app.S.selectedLeftPanelItem).toEqual({ kind: 'enum', id: en.id });
+  });
+});
+
+describe('V46: No state chart when no object selected', () => {
+  it('canvas shows no-object message when no object selected', () => {
+    app.deselectObject();
+    app.renderLeftPanel();
+    const overlay = document.getElementById('canvas-no-object');
+    expect(overlay.style.display).not.toBe('none');
+    // Restore
+    const game = app.S.objects.find(o => o.name === 'game');
+    app.selectObject(game.id);
+  });
+
+  it('canvas hides no-object message when object is selected', () => {
+    const overlay = document.getElementById('canvas-no-object');
+    expect(overlay.style.display).toBe('none');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V47 — Inline add-object form, delete confirmation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V47: Add object inline form', () => {
+  it('add-object form is hidden by default', () => {
+    const form = document.getElementById('add-object-form');
+    expect(form.style.display).toBe('none');
+  });
+
+  it('clicking + button shows the add-object form', () => {
+    document.getElementById('btn-add-object').click();
+    const form = document.getElementById('add-object-form');
+    expect(form.style.display).not.toBe('none');
+    // Clean up
+    document.getElementById('add-object-cancel').click();
+  });
+
+  it('form has class dropdown populated with all classes', () => {
+    document.getElementById('btn-add-object').click();
+    const select = document.getElementById('add-object-class');
+    expect(select.options.length).toBeGreaterThanOrEqual(1);
+    const optionTexts = Array.from(select.options).map(o => o.textContent);
+    expect(optionTexts).toContain('Game');
+    document.getElementById('add-object-cancel').click();
+  });
+
+  it('cancel button hides the form', () => {
+    document.getElementById('btn-add-object').click();
+    document.getElementById('add-object-cancel').click();
+    const form = document.getElementById('add-object-form');
+    expect(form.style.display).toBe('none');
+  });
+
+  it('submitting the form creates a new object with selected class', () => {
+    const before = app.S.objects.length;
+    document.getElementById('btn-add-object').click();
+    const nameInput = document.getElementById('add-object-name');
+    const classSelect = document.getElementById('add-object-class');
+    nameInput.value = 'testObj';
+    // Select first class
+    classSelect.value = classSelect.options[0].value;
+    document.getElementById('add-object-ok').click();
+    expect(app.S.objects.length).toBe(before + 1);
+    const newObj = app.S.objects.find(o => o.name === 'testObj');
+    expect(newObj).toBeTruthy();
+    expect(newObj.classId).toBe(Number(classSelect.options[0].value));
+  });
+
+  it('form is hidden after successful submission', () => {
+    document.getElementById('btn-add-object').click();
+    document.getElementById('add-object-name').value = 'testObj2';
+    document.getElementById('add-object-ok').click();
+    const form = document.getElementById('add-object-form');
+    expect(form.style.display).toBe('none');
+  });
+
+  it('empty name does not create an object', () => {
+    const before = app.S.objects.length;
+    document.getElementById('btn-add-object').click();
+    document.getElementById('add-object-name').value = '';
+    document.getElementById('add-object-ok').click();
+    expect(app.S.objects.length).toBe(before);
+  });
+});
+
+describe('V47: Delete object confirmation', () => {
+  it('deleteObject still works programmatically', () => {
+    const obj = app.addObject('toDelete');
+    const before = app.S.objects.length;
+    app.deleteObject(obj.id);
+    expect(app.S.objects.length).toBe(before - 1);
+  });
+});

@@ -5,6 +5,16 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
+/** Helper: add a new object via the inline form. */
+async function addObjectViaForm(page, name, className) {
+  await page.locator('#btn-add-object').click();
+  if (className) {
+    await page.locator('#add-object-class').selectOption({ label: className });
+  }
+  await page.locator('#add-object-name').fill(name);
+  await page.locator('#add-object-ok').click();
+}
+
 // ─── Version 1: Toolbar & basic node creation ──────────────────────────────
 
 test.describe('V1 – Toolbar and state creation', () => {
@@ -782,9 +792,9 @@ test.describe('Theme toggle', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 test.describe('V44: Left panel visibility', () => {
-  test('left panel is visible with three sections', async ({ page }) => {
+  test('left panel is visible with four sections', async ({ page }) => {
     await expect(page.locator('#left-panel')).toBeVisible();
-    await expect(page.locator('.left-panel-section')).toHaveCount(3);
+    await expect(page.locator('.left-panel-section')).toHaveCount(4);
   });
 
   test('objects list contains default game object', async ({ page }) => {
@@ -814,35 +824,29 @@ test.describe('V44: Left panel visibility', () => {
     await expect(page.locator('#btn-add-object')).toBeVisible();
   });
 
-  test('add class button is visible', async ({ page }) => {
+  test('add class button is visible when no object selected', async ({ page }) => {
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' });
     await expect(page.locator('#btn-add-class')).toBeVisible();
   });
 
-  test('add enum button is visible', async ({ page }) => {
+  test('add enum button is visible when no object selected', async ({ page }) => {
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' });
     await expect(page.locator('#btn-add-enum')).toBeVisible();
   });
 });
 
 test.describe('V44: Add operations via prompt', () => {
-  test('clicking + on Objects creates a new object', async ({ page }) => {
-    // Mock the prompts
-    await page.evaluate(() => {
-      let callCount = 0;
-      window._origPrompt = window.prompt;
-      window.prompt = (msg) => {
-        callCount++;
-        if (callCount === 1) return 'enemy';   // object name
-        if (callCount === 2) return 'Game';      // class name
-        return null;
-      };
-    });
-    await page.locator('#btn-add-object').click();
+  test('clicking + on Objects shows inline form and creates a new object', async ({ page }) => {
+    await addObjectViaForm(page, 'enemy', 'Game');
     await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(2);
     await expect(page.locator('#objects-list .left-panel-item').nth(1)).toContainText('enemy');
-    await page.evaluate(() => { window.prompt = window._origPrompt; });
   });
 
   test('clicking + on Classes creates a new class', async ({ page }) => {
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' }); // deselect object first
     await page.evaluate(() => {
       window._origPrompt = window.prompt;
       window.prompt = () => 'Sprite';
@@ -855,6 +859,8 @@ test.describe('V44: Add operations via prompt', () => {
   });
 
   test('clicking + on Enum Classes creates a new enum class', async ({ page }) => {
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' }); // deselect object first
     await page.evaluate(() => {
       window._origPrompt = window.prompt;
       window.prompt = () => 'Direction';
@@ -869,6 +875,8 @@ test.describe('V44: Add operations via prompt', () => {
 
 test.describe('V44: Class inspector', () => {
   test('clicking a class shows its properties in inspector', async ({ page }) => {
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' }); // deselect object
     await page.locator('#classes-list .left-panel-item').first().click();
     // Inspector should show properties including Name input
     await expect(page.locator('#inspector-props')).toBeVisible();
@@ -879,11 +887,15 @@ test.describe('V44: Class inspector', () => {
   });
 
   test('class inspector shows Add Property button', async ({ page }) => {
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' });
     await page.locator('#classes-list .left-panel-item').first().click();
     await expect(page.locator('button:has-text("+ Add Property")')).toBeVisible();
   });
 
   test('clicking Add Property adds a new property row', async ({ page }) => {
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' });
     await page.locator('#classes-list .left-panel-item').first().click();
     const beforeCount = await page.locator('#inspector-props input.inspector-input').count();
     await page.locator('button:has-text("+ Add Property")').click();
@@ -892,6 +904,8 @@ test.describe('V44: Class inspector', () => {
   });
 
   test('property type dropdown contains all expected types', async ({ page }) => {
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' });
     await page.locator('#classes-list .left-panel-item').first().click();
     const select = page.locator('#inspector-props select.inspector-select').first();
     const options = await select.locator('option').allTextContents();
@@ -907,6 +921,8 @@ test.describe('V44: Class inspector', () => {
 
 test.describe('V44: Enum class inspector', () => {
   test('clicking an enum class shows its values in inspector', async ({ page }) => {
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' }); // deselect object
     await page.locator('#enums-list .left-panel-item').first().click();
     await expect(page.locator('#inspector-props')).toBeVisible();
     // GameType has 5 values + name input = at least 6 inputs
@@ -916,6 +932,8 @@ test.describe('V44: Enum class inspector', () => {
   });
 
   test('enum values are displayed in uppercase', async ({ page }) => {
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' });
     await page.locator('#enums-list .left-panel-item').first().click();
     // The first value after the name input should be ARCADE
     const inputs = page.locator('#inspector-props input.inspector-input');
@@ -925,11 +943,15 @@ test.describe('V44: Enum class inspector', () => {
   });
 
   test('enum inspector shows Add Value button', async ({ page }) => {
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' });
     await page.locator('#enums-list .left-panel-item').first().click();
     await expect(page.locator('button:has-text("+ Add Value")')).toBeVisible();
   });
 
   test('typing lowercase in enum value converts to uppercase', async ({ page }) => {
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' });
     await page.locator('#enums-list .left-panel-item').first().click();
     await page.locator('button:has-text("+ Add Value")').click();
     const inputs = page.locator('#inspector-props input.inspector-input');
@@ -948,18 +970,7 @@ test.describe('V44: Object switching', () => {
     await expect(page.locator('.state-node')).toHaveCount(1);
 
     // Add a second object
-    await page.evaluate(() => {
-      let callCount = 0;
-      window._origPrompt = window.prompt;
-      window.prompt = (msg) => {
-        callCount++;
-        if (callCount === 1) return 'obj2';
-        if (callCount === 2) return 'Game';
-        return null;
-      };
-    });
-    await page.locator('#btn-add-object').click();
-    await page.evaluate(() => { window.prompt = window._origPrompt; });
+    await addObjectViaForm(page, 'obj2', 'Game');
 
     // Click the new object to switch
     await page.locator('#objects-list .left-panel-item').nth(1).click();
@@ -999,5 +1010,214 @@ test.describe('V45: Zoom toolbar inside canvas', () => {
     const leftPanelBox = await page.locator('#left-panel').boundingBox();
     const toolbarBox = await page.locator('#zoom-toolbar').boundingBox();
     expect(toolbarBox.x).toBeGreaterThanOrEqual(leftPanelBox.x + leftPanelBox.width);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V46 — Data panel, object properties, state chart per object
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('V46: Data panel title', () => {
+  test('left panel shows "Data" title', async ({ page }) => {
+    await expect(page.locator('#data-panel-title')).toBeVisible();
+    await expect(page.locator('#data-panel-title')).toHaveText('Data');
+  });
+});
+
+test.describe('V46: Minimized sections when object selected', () => {
+  test('classes and enums are minimized when game object is active', async ({ page }) => {
+    // game is selected by default
+    const classesMinimized = await page.locator('#section-classes').evaluate(el => el.classList.contains('minimized'));
+    expect(classesMinimized).toBe(true);
+    const enumsMinimized = await page.locator('#section-enums').evaluate(el => el.classList.contains('minimized'));
+    expect(enumsMinimized).toBe(true);
+  });
+
+  test('classes list is hidden when minimized', async ({ page }) => {
+    await expect(page.locator('#classes-list')).toBeHidden();
+  });
+
+  test('clicking minimized Classes header restores full class list', async ({ page }) => {
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' });
+    const minimized = await page.locator('#section-classes').evaluate(el => el.classList.contains('minimized'));
+    expect(minimized).toBe(false);
+    await expect(page.locator('#classes-list')).toBeVisible();
+  });
+
+  test('clicking minimized Enums header deselects object and shows enum list', async ({ page }) => {
+    await page.locator('#objects-list .left-panel-item').first().click();
+    const enumsMinimized = await page.locator('#section-enums').evaluate(el => el.classList.contains('minimized'));
+    expect(enumsMinimized).toBe(true);
+    await page.evaluate(() => document.getElementById('enums-header').click());
+    const minimizedAfter = await page.locator('#section-enums').evaluate(el => el.classList.contains('minimized'));
+    expect(minimizedAfter).toBe(false);
+    await expect(page.locator('#enums-list')).toBeVisible();
+  });
+});
+
+test.describe('V46: Object properties in data panel', () => {
+  test('object properties section visible when object selected', async ({ page }) => {
+    await page.locator('#objects-list .left-panel-item').first().click();
+    await expect(page.locator('#section-object-props')).toBeVisible();
+  });
+
+  test('shows 3 property rows for Game object', async ({ page }) => {
+    await page.locator('#objects-list .left-panel-item').first().click();
+    const rows = page.locator('#object-props-list .object-prop-row');
+    await expect(rows).toHaveCount(3);
+  });
+
+  test('property labels match Game class properties', async ({ page }) => {
+    await page.locator('#objects-list .left-panel-item').first().click();
+    const labels = page.locator('#object-props-list .object-prop-label');
+    await expect(labels.nth(0)).toHaveText('name');
+    await expect(labels.nth(1)).toHaveText('description');
+    await expect(labels.nth(2)).toHaveText('category');
+  });
+
+  test('object properties hidden when no object selected', async ({ page }) => {
+    await page.locator('#objects-list .left-panel-item').first().click();
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' });
+    await expect(page.locator('#section-object-props')).toBeHidden();
+  });
+});
+
+test.describe('V46: No state chart when no object', () => {
+  test('canvas shows overlay message when no object selected', async ({ page }) => {
+    await page.evaluate(() => document.getElementById('classes-header').click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' });
+    await expect(page.locator('#canvas-no-object')).toBeVisible();
+  });
+
+  test('canvas hides overlay when object is selected', async ({ page }) => {
+    await page.locator('#objects-list .left-panel-item').first().click();
+    await expect(page.locator('#canvas-no-object')).toBeHidden();
+  });
+});
+
+test.describe('V46: State chart remembered per object', () => {
+  test('state chart is preserved when switching between objects', async ({ page }) => {
+    // Select game, add a state node
+    await page.locator('#objects-list .left-panel-item').first().click();
+    await dragNewNode(page, '#btn-new-state');
+    await expect(page.locator('.state-node')).toHaveCount(1);
+
+    // Add a second object
+    await addObjectViaForm(page, 'ship', 'Game');
+
+    // Switch to ship — canvas should be empty
+    await page.locator('#objects-list .left-panel-item').nth(1).click();
+    await expect(page.locator('.state-node')).toHaveCount(0);
+
+    // Add a start node to ship
+    await dragNewNode(page, '#btn-new-start');
+    await expect(page.locator('.start-node')).toHaveCount(1);
+
+    // Switch back to game — should see the state node, not the start node
+    await page.locator('#objects-list .left-panel-item').first().click();
+    await expect(page.locator('.state-node')).toHaveCount(1);
+    await expect(page.locator('.start-node')).toHaveCount(0);
+
+    // Switch to ship again — should see the start node
+    await page.locator('#objects-list .left-panel-item').nth(1).click();
+    await expect(page.locator('.start-node')).toHaveCount(1);
+    await expect(page.locator('.state-node')).toHaveCount(0);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V47 — Inline add-object form, delete confirmation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('V47: Inline add-object form', () => {
+  test('add-object form is hidden by default', async ({ page }) => {
+    await expect(page.locator('#add-object-form')).toBeHidden();
+  });
+
+  test('clicking + shows the inline form with class dropdown and name input', async ({ page }) => {
+    await page.locator('#btn-add-object').click();
+    await expect(page.locator('#add-object-form')).toBeVisible();
+    await expect(page.locator('#add-object-class')).toBeVisible();
+    await expect(page.locator('#add-object-name')).toBeVisible();
+  });
+
+  test('class dropdown is populated with available classes', async ({ page }) => {
+    await page.locator('#btn-add-object').click();
+    const options = await page.locator('#add-object-class option').allTextContents();
+    expect(options).toContain('Game');
+  });
+
+  test('class dropdown appears before name input (class first)', async ({ page }) => {
+    await page.locator('#btn-add-object').click();
+    const classBox = await page.locator('#add-object-class').boundingBox();
+    const nameBox = await page.locator('#add-object-name').boundingBox();
+    expect(classBox.x).toBeLessThan(nameBox.x);
+  });
+
+  test('cancel button hides the form', async ({ page }) => {
+    await page.locator('#btn-add-object').click();
+    await page.locator('#add-object-cancel').click();
+    await expect(page.locator('#add-object-form')).toBeHidden();
+  });
+
+  test('submitting form creates object and hides form', async ({ page }) => {
+    await addObjectViaForm(page, 'rocket', 'Game');
+    await expect(page.locator('#add-object-form')).toBeHidden();
+    await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(2);
+    await expect(page.locator('#objects-list .left-panel-item').nth(1)).toContainText('rocket');
+  });
+
+  test('pressing Enter in name input submits the form', async ({ page }) => {
+    await page.locator('#btn-add-object').click();
+    await page.locator('#add-object-name').fill('enterObj');
+    await page.locator('#add-object-name').press('Enter');
+    await expect(page.locator('#add-object-form')).toBeHidden();
+    await expect(page.locator('#objects-list .left-panel-item').last()).toContainText('enterObj');
+  });
+
+  test('pressing Escape in name input cancels the form', async ({ page }) => {
+    await page.locator('#btn-add-object').click();
+    await page.locator('#add-object-name').press('Escape');
+    await expect(page.locator('#add-object-form')).toBeHidden();
+  });
+});
+
+test.describe('V47: Delete object confirmation', () => {
+  test('deleting an object shows a confirmation dialog', async ({ page }) => {
+    // Add a deletable object
+    await addObjectViaForm(page, 'toDelete', 'Game');
+    const itemCount = await page.locator('#objects-list .left-panel-item').count();
+
+    // Set up dialog handler to accept
+    page.once('dialog', async dialog => {
+      expect(dialog.type()).toBe('confirm');
+      expect(dialog.message()).toContain('toDelete');
+      await dialog.accept();
+    });
+
+    // Hover and click delete
+    const item = page.locator('#objects-list .left-panel-item').last();
+    await item.hover();
+    await item.locator('.left-panel-delete-btn').click();
+
+    await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(itemCount - 1);
+  });
+
+  test('dismissing confirmation does not delete the object', async ({ page }) => {
+    await addObjectViaForm(page, 'keepMe', 'Game');
+    const itemCount = await page.locator('#objects-list .left-panel-item').count();
+
+    // Dismiss the dialog
+    page.once('dialog', async dialog => {
+      await dialog.dismiss();
+    });
+
+    const item = page.locator('#objects-list .left-panel-item').last();
+    await item.hover();
+    await item.locator('.left-panel-delete-btn').click();
+
+    await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(itemCount);
   });
 });

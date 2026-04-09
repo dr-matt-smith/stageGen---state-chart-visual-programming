@@ -93,3 +93,45 @@ Version 45 - Move zoom toolbar into the diagram stage
   - ✅ Toolbar is fully inside the diagram 'stage' rectangle area
 - ✅ Added 2 new Vitest unit tests (112 total)
 - ✅ Added 4 new Playwright e2e tests (95 total)
+
+
+Version 46 - Object properties in Data panel and state chart per object
+==================
+
+- ✅ Renamed left panel to "Data" panel with visible title
+  - ✅ Right panel remains "Inspector"
+
+- ✅ Correct current behaviour retained
+  - ✅ When a Class or Enum Class is selected in the Data Panel, its values can be edited in the Inspector
+
+- ✅ Behaviour fixed
+  - ✅ When an object is selected in the Data panel:
+    - ✅ We see the State Chart belonging to that object on the stage
+    - ✅ We see the properties of the selected state chart component in the Inspector
+    - ✅ We see the properties for the object in the Data panel (new Properties section with editable values)
+    - ✅ Class and Enum Class rows are minimised when an object is selected
+  - ✅ Each object has its own State Chart diagram
+    - ✅ State charts are remembered when switching between objects
+    - ✅ e.g. selecting 'game', adding states, switching to 'ship', adding a start state, switching back to 'game' shows game's chart as it was
+  - ✅ When a minimised Class or Enum Class header is clicked, the current object is deselected
+    - ✅ Full Class and Enum Class lists are restored
+    - ✅ Canvas shows "Select an object to view its state chart" overlay when no object selected
+    - ✅ State chart cannot be edited when no object is selected
+- ✅ Added 11 new Vitest unit tests (123 total)
+- ✅ Added 12 new Playwright e2e tests (107 total)
+
+Version 47 features - new object creation
+==================
+
+- ✅ New object creation uses a single inline form (not two separate prompts)
+  - ✅ Class dropdown appears first, then object name text input (follows typical programming convention)
+  - ✅ Form shows OK (✓) and Cancel (✗) buttons
+  - ✅ Enter key submits, Escape key cancels
+  - ✅ Form hides after successful submission or cancel
+
+- ✅ Deleting an object shows a confirmation dialog ("Delete object 'name'?")
+  - ✅ Dismissing the confirmation keeps the object
+  - ✅ Accepting the confirmation deletes the object
+
+- ✅ Added 8 new Vitest unit tests (131 total)
+- ✅ Added 10 new Playwright e2e tests (117 total)

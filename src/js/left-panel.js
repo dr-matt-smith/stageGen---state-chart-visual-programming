@@ -1,26 +1,60 @@
 'use strict';
 
 import { S } from './state.js';
-import { canvasEl, connSvg } from './dom-refs.js';
+import { PROPERTY_TYPES } from './config.js';
+import { canvasEl, connSvg, mmStatesEl } from './dom-refs.js';
 import { refreshMinimap } from './minimap.js';
 import { applyTransform } from './transform.js';
 import { updateInspector } from './inspector.js';
 import { deactivateNode, clearGroup } from './nodes/node-selection.js';
 import { deselectConn } from './connections/conn-selection.js';
-import { mmStatesEl } from './dom-refs.js';
 
 // ── DOM refs ────────────────────────────────────────────────────────────────
 
-const objectsList = document.getElementById('objects-list');
-const classesList = document.getElementById('classes-list');
-const enumsList   = document.getElementById('enums-list');
+const objectsList      = document.getElementById('objects-list');
+const classesList      = document.getElementById('classes-list');
+const enumsList        = document.getElementById('enums-list');
+const sectionObjProps  = document.getElementById('section-object-props');
+const objectPropsList  = document.getElementById('object-props-list');
+const objectPropsTitle = document.getElementById('object-props-title');
+const sectionClasses   = document.getElementById('section-classes');
+const sectionEnums     = document.getElementById('section-enums');
+const classesHeader    = document.getElementById('classes-header');
+const enumsHeader      = document.getElementById('enums-header');
+const canvasNoObject   = document.getElementById('canvas-no-object');
 
 // ── Render ──────────────────────────────────────────────────────────────────
 
 export function renderLeftPanel() {
+  const hasActiveObject = S.activeObjectId != null;
+
   renderObjectsList();
+
+  // Object properties section: visible only when an object is selected
+  if (hasActiveObject) {
+    sectionObjProps.style.display = '';
+    renderObjectProperties();
+  } else {
+    sectionObjProps.style.display = 'none';
+    objectPropsList.innerHTML = '';
+  }
+
+  // Minimise Classes/Enums when an object is selected
+  if (hasActiveObject) {
+    sectionClasses.classList.add('minimized');
+    sectionEnums.classList.add('minimized');
+  } else {
+    sectionClasses.classList.remove('minimized');
+    sectionEnums.classList.remove('minimized');
+  }
+
   renderClassesList();
   renderEnumsList();
+
+  // Canvas no-object overlay
+  if (canvasNoObject) {
+    canvasNoObject.style.display = hasActiveObject ? 'none' : '';
+  }
 }
 
 function renderObjectsList() {
@@ -51,6 +85,7 @@ function renderObjectsList() {
       delBtn.textContent = '\u00d7';
       delBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (!confirm(`Delete object "${obj.name}"?`)) return;
         deleteObject(obj.id);
       });
       item.appendChild(delBtn);
@@ -129,6 +164,79 @@ function renderEnumsList() {
   }
 }
 
+// ── Object properties in data panel ─────────────────────────────────────────
+
+function renderObjectProperties() {
+  const obj = S.objects.find(o => o.id === S.activeObjectId);
+  if (!obj) { objectPropsList.innerHTML = ''; return; }
+
+  const cls = S.classes.find(c => c.id === obj.classId);
+  objectPropsTitle.textContent = cls ? `${obj.name} (${cls.name})` : obj.name;
+
+  objectPropsList.innerHTML = '';
+
+  if (!cls || cls.properties.length === 0) {
+    const emptyRow = document.createElement('div');
+    emptyRow.className = 'object-prop-row';
+    emptyRow.style.color = 'var(--text-dim)';
+    emptyRow.style.fontStyle = 'italic';
+    emptyRow.textContent = 'No properties';
+    objectPropsList.appendChild(emptyRow);
+    return;
+  }
+
+  // Initialise property values store on the object if not present
+  if (!obj.propertyValues) obj.propertyValues = {};
+
+  for (const prop of cls.properties) {
+    const row = document.createElement('div');
+    row.className = 'object-prop-row';
+
+    const label = document.createElement('span');
+    label.className = 'object-prop-label';
+    label.textContent = prop.name;
+    row.appendChild(label);
+
+    const valueDiv = document.createElement('div');
+    valueDiv.className = 'object-prop-value';
+
+    if (prop.type === 'Boolean') {
+      const sel = document.createElement('select');
+      sel.innerHTML = '<option value="false">false</option><option value="true">true</option>';
+      sel.value = obj.propertyValues[prop.name] === 'true' ? 'true' : 'false';
+      sel.addEventListener('change', () => { obj.propertyValues[prop.name] = sel.value; });
+      sel.addEventListener('keydown', (e) => e.stopPropagation());
+      valueDiv.appendChild(sel);
+    } else if (prop.type === 'EnumClass') {
+      const en = S.enumClasses.find(e => e.id === prop.enumClassId);
+      const sel = document.createElement('select');
+      if (en) {
+        for (const v of en.values) {
+          const opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = v;
+          if (obj.propertyValues[prop.name] === v) opt.selected = true;
+          sel.appendChild(opt);
+        }
+      }
+      sel.addEventListener('change', () => { obj.propertyValues[prop.name] = sel.value; });
+      sel.addEventListener('keydown', (e) => e.stopPropagation());
+      valueDiv.appendChild(sel);
+    } else {
+      const input = document.createElement('input');
+      input.type = (prop.type === 'Integer' || prop.type === 'Real') ? 'number' : 'text';
+      input.value = obj.propertyValues[prop.name] || '';
+      input.placeholder = prop.type;
+      input.addEventListener('input', () => { obj.propertyValues[prop.name] = input.value; });
+      input.addEventListener('keydown', (e) => e.stopPropagation());
+      valueDiv.appendChild(input);
+    }
+
+    row.appendChild(valueDiv);
+    objectPropsList.appendChild(row);
+  }
+}
+
 // ── Object switching ────────────────────────────────────────────────────────
 
 /**
@@ -136,7 +244,8 @@ function renderEnumsList() {
  * then load the target object's state chart onto the canvas.
  */
 export function selectObject(id) {
-  if (id === S.activeObjectId) return;
+  // If already selected and we're just re-clicking, do nothing
+  if (id === S.activeObjectId && S.selectedLeftPanelItem == null) return;
 
   // Deselect everything on the canvas
   if (S.activeNode) deactivateNode();
@@ -144,10 +253,10 @@ export function selectObject(id) {
   if (S.selectedNodes.length) clearGroup();
 
   // Save current state chart into the active object
-  saveActiveObjectChart();
-
-  // Clear canvas DOM
-  clearCanvasDOM();
+  if (S.activeObjectId != null) {
+    saveActiveObjectChart();
+    clearCanvasDOM();
+  }
 
   // Load the target object
   S.activeObjectId = id;
@@ -173,6 +282,30 @@ export function selectObject(id) {
   applyTransform();
   updateInspector();
   renderLeftPanel();
+}
+
+/**
+ * Deselect the current object — clears the canvas and shows no state chart.
+ * Used when switching to class/enum editing mode.
+ */
+export function deselectObject() {
+  if (S.activeObjectId == null) return;
+
+  if (S.activeNode) deactivateNode();
+  if (S.selectedConn) deselectConn();
+  if (S.selectedNodes.length) clearGroup();
+
+  saveActiveObjectChart();
+  clearCanvasDOM();
+
+  S.activeObjectId = null;
+  S.nodes = [];
+  S.connections = [];
+  S.nextId = 1;
+  S.nextConnId = 1;
+
+  refreshMinimap();
+  applyTransform();
 }
 
 /** Save live S.nodes/connections data into the currently active object. */
@@ -202,6 +335,9 @@ function clearCanvasDOM() {
 // ── Left panel item selection (for inspector) ───────────────────────────────
 
 export function selectClassInPanel(id) {
+  // Deselect current object — clears canvas
+  deselectObject();
+
   if (S.activeNode) deactivateNode();
   if (S.selectedConn) deselectConn();
   if (S.selectedNodes.length) clearGroup();
@@ -211,6 +347,9 @@ export function selectClassInPanel(id) {
 }
 
 export function selectEnumInPanel(id) {
+  // Deselect current object — clears canvas
+  deselectObject();
+
   if (S.activeNode) deactivateNode();
   if (S.selectedConn) deselectConn();
   if (S.selectedNodes.length) clearGroup();
@@ -231,6 +370,7 @@ export function addObject(name, classId) {
     connections: [],
     nextId: 1,
     nextConnId: 1,
+    propertyValues: {},
   };
   S.objects.push(obj);
   renderLeftPanel();

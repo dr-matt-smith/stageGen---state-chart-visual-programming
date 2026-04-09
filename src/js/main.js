@@ -17,7 +17,7 @@ import { renderConnGroup, updateConnection } from './connections/conn-render.js'
 import { recalcPairOffsets } from './connections/conn-model.js';
 import { updateInspector, showJsonExport, setRenderLeftPanel } from './inspector.js';
 import { S as _S2, initDefaults } from './state.js';
-import { renderLeftPanel, selectObject, addObject, addClass, addEnumClass,
+import { renderLeftPanel, selectObject, deselectObject, addObject, addClass, addEnumClass,
          deleteObject, deleteClass, deleteEnumClass, selectClassInPanel, selectEnumInPanel,
          saveActiveObjectChart } from './left-panel.js';
 
@@ -518,15 +518,48 @@ initDefaults();
 setRenderLeftPanel(renderLeftPanel);
 renderLeftPanel();
 
-document.getElementById('btn-add-object').addEventListener('click', () => {
-  const name = prompt('Object name:');
-  if (!name || !name.trim()) return;
-  // Ask which class
-  const classNames = S.classes.map(c => c.name);
-  const classChoice = prompt(`Class (${classNames.join(', ')}):`, classNames[0] || '');
-  const cls = S.classes.find(c => c.name === classChoice);
-  addObject(name.trim(), cls ? cls.id : null);
+// ── Add-object inline form ──────────────────────────────────────────────────
+
+const addObjForm     = document.getElementById('add-object-form');
+const addObjClass    = document.getElementById('add-object-class');
+const addObjName     = document.getElementById('add-object-name');
+const addObjOk       = document.getElementById('add-object-ok');
+const addObjCancel   = document.getElementById('add-object-cancel');
+
+function showAddObjectForm() {
+  addObjClass.innerHTML = '';
+  for (const cls of S.classes) {
+    const opt = document.createElement('option');
+    opt.value = cls.id;
+    opt.textContent = cls.name;
+    addObjClass.appendChild(opt);
+  }
+  addObjName.value = '';
+  addObjForm.style.display = '';
+  addObjName.focus();
+}
+
+function hideAddObjectForm() {
+  addObjForm.style.display = 'none';
+}
+
+function commitAddObject() {
+  const name = addObjName.value.trim();
+  if (!name) return;
+  const classId = Number(addObjClass.value);
+  addObject(name, classId);
+  hideAddObjectForm();
+}
+
+document.getElementById('btn-add-object').addEventListener('click', showAddObjectForm);
+addObjOk.addEventListener('click', commitAddObject);
+addObjCancel.addEventListener('click', hideAddObjectForm);
+addObjName.addEventListener('keydown', (e) => {
+  e.stopPropagation();
+  if (e.key === 'Enter') commitAddObject();
+  if (e.key === 'Escape') hideAddObjectForm();
 });
+addObjClass.addEventListener('keydown', (e) => e.stopPropagation());
 
 document.getElementById('btn-add-class').addEventListener('click', () => {
   const name = prompt('Class name:');
@@ -538,6 +571,25 @@ document.getElementById('btn-add-enum').addEventListener('click', () => {
   const name = prompt('Enum class name:');
   if (!name || !name.trim()) return;
   addEnumClass(name.trim());
+});
+
+// Clicking minimized Classes/Enums header deselects object and restores full lists
+document.getElementById('classes-header').addEventListener('click', (e) => {
+  if (!document.getElementById('section-classes').classList.contains('minimized')) return;
+  e.stopPropagation();
+  deselectObject();
+  S.selectedLeftPanelItem = null;
+  updateInspector();
+  renderLeftPanel();
+});
+
+document.getElementById('enums-header').addEventListener('click', (e) => {
+  if (!document.getElementById('section-enums').classList.contains('minimized')) return;
+  e.stopPropagation();
+  deselectObject();
+  S.selectedLeftPanelItem = null;
+  updateInspector();
+  renderLeftPanel();
 });
 
 // Left divider resize
@@ -588,6 +640,6 @@ export { selectConn, deselectConn } from './connections/conn-selection.js';
 export { getBorderPoint, getPairPerpendicular } from './connections/geometry.js';
 export { updateInspector, serialiseDiagram } from './inspector.js';
 export { initDefaults } from './state.js';
-export { renderLeftPanel, selectObject, addObject, addClass, addEnumClass,
+export { renderLeftPanel, selectObject, deselectObject, addObject, addClass, addEnumClass,
          deleteObject, deleteClass, deleteEnumClass,
          selectClassInPanel, selectEnumInPanel, saveActiveObjectChart } from './left-panel.js';

@@ -12,16 +12,27 @@ export function setupDOM() {
     </div>
     <div id="main-area">
       <div id="left-panel">
-        <div class="left-panel-section">
+        <div id="data-panel-title" class="left-panel-title">Data</div>
+        <div id="section-objects" class="left-panel-section">
           <div class="left-panel-header"><span>Objects</span><button id="btn-add-object" class="left-panel-add-btn">+</button></div>
           <div id="objects-list" class="left-panel-list"></div>
+          <div id="add-object-form" class="add-object-form" style="display:none;">
+            <select id="add-object-class" title="Class"></select>
+            <input id="add-object-name" type="text" placeholder="object name" title="Object name">
+            <button id="add-object-ok" class="left-panel-add-btn" title="Create">&#10003;</button>
+            <button id="add-object-cancel" class="left-panel-add-btn" title="Cancel">&#10005;</button>
+          </div>
         </div>
-        <div class="left-panel-section">
-          <div class="left-panel-header"><span>Classes</span><button id="btn-add-class" class="left-panel-add-btn">+</button></div>
+        <div id="section-object-props" class="left-panel-section" style="display:none;">
+          <div class="left-panel-header"><span id="object-props-title">Properties</span></div>
+          <div id="object-props-list" class="left-panel-list"></div>
+        </div>
+        <div id="section-classes" class="left-panel-section">
+          <div class="left-panel-header" id="classes-header"><span>Classes</span><button id="btn-add-class" class="left-panel-add-btn">+</button></div>
           <div id="classes-list" class="left-panel-list"></div>
         </div>
-        <div class="left-panel-section">
-          <div class="left-panel-header"><span>Enum Classes</span><button id="btn-add-enum" class="left-panel-add-btn">+</button></div>
+        <div id="section-enums" class="left-panel-section">
+          <div class="left-panel-header" id="enums-header"><span>Enum Classes</span><button id="btn-add-enum" class="left-panel-add-btn">+</button></div>
           <div id="enums-list" class="left-panel-list"></div>
         </div>
       </div>
@@ -30,6 +41,7 @@ export function setupDOM() {
         <div id="canvas" style="width:4000px;height:3000px;">
           <svg id="connections-svg" xmlns="http://www.w3.org/2000/svg"></svg>
         </div>
+        <div id="canvas-no-object" style="display:none;">Select an object to view its state chart</div>
         <div id="zoom-toolbar">
           <button id="btn-fit-all" class="toolbar-btn"></button>
           <button id="btn-zoom-out" class="toolbar-btn"></button>
