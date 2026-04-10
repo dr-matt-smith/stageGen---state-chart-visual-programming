@@ -180,3 +180,66 @@ Version 50 - Play sound methods
 - ✅ Added 7 new Vitest unit tests (152 total)
 - ✅ Added 2 new Playwright e2e tests (130 total)
 
+Version 51 features - events, guard conditions and actions
+==================
+
+- refer to these documents as a reference about state chart diagrams:
+  - ![](/screenshots/stateChart_reference.pdf)
+  - ![](/screenshots/stateMachineDiagrams_lecture.pdf)
+    - [] note this project will require expressions that refer to object properties and methods, and a set of pre-defined events
+
+- declare the following events:
+  - after(<timeSecondsAsFloat>)
+  - when(<expressionEvaluatingToTrueOrFalse>)
+  - keyDown(<key>)
+    - allow user to type a character (A-Z characters are forced to be upper case)
+    - or can choose from a SpecialKeyType built-in enum class
+      - SPACE, ESCAPE, ENTER, CONTROL, LEFT_SHIFT, RIGHT_SHIFT, WINDOWS_COMMAND, BACKSPACE, DELETE, ARROW_LEFT, ARROW, RIGHT, ARROW_UP, ARROW_DOWN
+
+- add a new Terminate state "X" object that can be added to diagrams
+  - [] note this type of state can only have transitions entering it
+  - no transisition can have a terminate state as the source of the transition
+
+- [] edit mode state behaviours
+  - in Edit mode, when a state is selected, in the Inspector
+    - hide size, position, connections
+    - add 3 sections allowing the user to enter behaviours
+      - these can be statements manipulating object properties, and/or calls to methods
+        - main section title: "State Behaviours"
+          - (section 1) Entry /
+            - (allow user to CRUD multiple behaviours)
+          - (section 2) Do /
+            - (allow user to CRUD multiple behaviours)
+          - (section 3) Exit /
+            - (allow user to CRUD multiple behaviours)
+
+
+- add a Load JSON button
+  - [] popup a warning that the existing project will be replaced by the loaded project
+    - [] if accepted, allow the user to paste in JSON for a new project
+
+- [] edit mode transition event
+  - in Edit mode, when a transition is selected, in the Inspector
+    - provide a section allowing the user to enter an event
+      - section title: "[ guard condition ] "
+      - NOTE - this should appear above the transitions actions
+
+- [] edit mode transition guard condition
+  - in Edit mode, when a transition is selected, in the Inspector
+    - provide a section allowing the user to enter a condition expression
+      - section title: "[ guard condition ] "
+      - NOTE - this should appear above the transitions actions
+      - NOTE - a transition event MUST be declared before a guard condition can be defined
+        - a transition event cannot be deleted if there is guard condition
+        - (popup a warning to the user if either of these situations occur, and popup an error when loading a JSON project if this situation occurs)
+
+- [] edit mode transition behaviours
+  - in Edit mode, when a transition is selected, in the Inspector
+    - provide a section allowing the user to enter one or more transition behaviours
+      - section title: "/ Transition Behaviours "
+        - (allow user to CRUD multiple behaviours)
+
+
+- [] and add Vitest and Playwright tests for all features implemented
+
+

@@ -25,6 +25,8 @@
   --bg-selected: #1a2744;
 
   --shadow-color: rgba(0, 0, 0, 0.6);
+
+  --node-label-color: #bfdbfe;
 }
 
 /* ── Light theme overrides ───────────────────────────────────────────────── */
@@ -54,4 +56,6 @@
   --bg-selected: #dbeafe;
 
   --shadow-color: rgba(0, 0, 0, 0.15);
+
+  --node-label-color: #1e40af;
 }

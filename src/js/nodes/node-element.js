@@ -54,8 +54,8 @@ export function fitLabelFontSize(node) {
     availH = node.h * 0.48 - 4;
     availW = node.w * 0.48 - 4;
   } else {
-    availH = node.h - 14;
-    availW = node.w - 18;
+    availH = node.h - 8;
+    availW = node.w - 12;
   }
 
   let lo = MIN_FONT, hi = MAX_FONT, best = MIN_FONT;

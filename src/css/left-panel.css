@@ -29,12 +29,14 @@
 /* ── Panel title ───────────────────────────────────────────────────────────── */
 
 .left-panel-title {
-  padding: 8px 10px;
-  font-size: 13px;
+  padding: 8px 12px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text-primary);
-  border-bottom: 1px solid var(--border-color);
+  color: #60a5fa;
+  text-align: center;
+  border-bottom: 2px solid #60a5fa;
   flex-shrink: 0;
+  user-select: none;
 }
 
 /* ── Sections ──────────────────────────────────────────────────────────────── */

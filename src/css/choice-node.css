@@ -67,3 +67,33 @@
 .choice-node.node-group-selected .choice-svg polygon {
   stroke: #a78bfa;
 }
+
+/* ── Light mode overrides ──────────────────────────────────────────────────── */
+
+[data-theme="light"] .choice-node .choice-svg polygon {
+  fill: #fffbeb;
+  stroke: #d97706;
+}
+
+[data-theme="light"] .choice-node:hover .choice-svg polygon {
+  stroke: #b45309;
+  fill: #fef3c7;
+}
+
+[data-theme="light"] .choice-node.node-active .choice-svg polygon {
+  stroke: #b45309;
+  fill: #fef3c7;
+}
+
+[data-theme="light"] .choice-node.dragging .choice-svg polygon {
+  stroke: #92400e;
+}
+
+[data-theme="light"] .choice-node .node-label {
+  color: #92400e;
+}
+
+[data-theme="light"] .choice-node .node-label-input {
+  color: #92400e;
+  border-bottom-color: #d97706;
+}

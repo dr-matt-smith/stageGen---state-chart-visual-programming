@@ -279,15 +279,15 @@ html, body {
 .node-label {
   position: relative;
   z-index: 1;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
-  color: #bfdbfe;
+  color: var(--node-label-color, #bfdbfe);
   pointer-events: none;
   overflow: hidden;
   white-space: pre-wrap;
   word-break: break-word;
-  line-height: 1.3;
-  padding: 0 8px;
+  line-height: 1.2;
+  padding: 0 4px;
   width: 100%;
   text-align: center;
 }
