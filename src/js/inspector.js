@@ -501,8 +501,8 @@ function renderClassInspector(classId) {
   addRow.appendChild(addTd);
   tbody.appendChild(addRow);
 
-  // Auto-generated sound methods
-  renderSoundMethodsSection(cls);
+  // All methods: explicit class methods + auto-generated sound methods
+  renderMethodsSection(cls);
 }
 
 // ── Sound methods (auto-generated) ──────────────────────────────────────────
@@ -525,15 +525,18 @@ export function getSoundMethods(cls) {
   return methods;
 }
 
-function renderSoundMethodsSection(cls) {
-  const methods = getSoundMethods(cls);
-  if (methods.length === 0) return;
+function renderMethodsSection(cls) {
+  // Combine explicit class methods + auto-generated sound methods
+  const explicit = (cls.methods || []).map(m => ({ signature: m.signature, description: m.description }));
+  const sound = getSoundMethods(cls);
+  const all = [...explicit, ...sound];
+  if (all.length === 0) return;
 
   const headerRow = document.createElement('tr');
-  headerRow.innerHTML = `<td colspan="2" style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.05em;padding-top:12px;">Sound Methods</td>`;
+  headerRow.innerHTML = `<td colspan="2" style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.05em;padding-top:12px;">Methods</td>`;
   tbody.appendChild(headerRow);
 
-  for (const m of methods) {
+  for (const m of all) {
     const tr = document.createElement('tr');
     tr.className = 'sound-method-row';
     const sigTd = document.createElement('td');

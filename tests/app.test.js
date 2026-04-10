@@ -796,12 +796,12 @@ describe('V44: Default state', () => {
     expect(game.builtIn).toBe(true);
   });
 
-  it('has a default Game class with 3 properties', () => {
+  it('has a default Game class with 4 properties', () => {
     const cls = app.S.classes.find(c => c.name === 'Game');
     expect(cls).toBeTruthy();
     expect(cls.builtIn).toBe(true);
-    expect(cls.properties.length).toBe(3);
-    expect(cls.properties.map(p => p.name)).toEqual(['name', 'description', 'category']);
+    expect(cls.properties.length).toBe(4);
+    expect(cls.properties.map(p => p.name)).toEqual(['name', 'description', 'category', 'tickIntervalSeconds']);
   });
 
   it('has a default GameType enum class with 5 values', () => {
@@ -840,10 +840,13 @@ describe('V44: Left panel rendering', () => {
     expect(items[0].textContent).toContain('game');
   });
 
-  it('classes list contains Game class', () => {
+  it('classes list contains Game, Sprite, and CSSColor classes', () => {
     const items = document.querySelectorAll('#classes-list .left-panel-item');
-    expect(items.length).toBeGreaterThanOrEqual(1);
-    expect(items[0].textContent).toContain('Game');
+    expect(items.length).toBeGreaterThanOrEqual(3);
+    const names = Array.from(items).map(i => i.textContent);
+    expect(names.some(n => n.includes('Game'))).toBe(true);
+    expect(names.some(n => n.includes('Sprite'))).toBe(true);
+    expect(names.some(n => n.includes('CSSColor'))).toBe(true);
   });
 
   it('enums list contains GameType and SpecialKeyType', () => {
@@ -874,9 +877,9 @@ describe('V44: Add operations', () => {
 
   it('addClass creates a new class with empty properties', () => {
     const before = app.S.classes.length;
-    app.addClass('Sprite');
+    app.addClass('CustomClass');
     expect(app.S.classes.length).toBe(before + 1);
-    const cls = app.S.classes.find(c => c.name === 'Sprite');
+    const cls = app.S.classes.find(c => c.name === 'CustomClass');
     expect(cls).toBeTruthy();
     expect(cls.properties).toEqual([]);
     expect(cls.builtIn).toBe(false);
@@ -1091,8 +1094,8 @@ describe('V46: Object properties in data panel', () => {
 
   it('shows property rows matching the class properties', () => {
     const rows = document.querySelectorAll('#object-props-list .object-prop-row');
-    // Game class has 3 properties: name, description, category
-    expect(rows.length).toBe(3);
+    // Game class has 4 properties: name, description, category, tickIntervalSeconds
+    expect(rows.length).toBe(4);
   });
 
   it('property labels match class property names', () => {
@@ -1539,5 +1542,97 @@ describe('V51: Serialisation includes V51 data', () => {
 describe('V51: Load JSON button exists', () => {
   it('Load JSON button exists in DOM', () => {
     expect(document.getElementById('btn-load-json')).toBeTruthy();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V52 — Sprite, CSSColor, Stage, Runtime engine
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V52: Built-in classes', () => {
+  it('Sprite class exists with expected properties', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sprite');
+    expect(cls).toBeTruthy();
+    expect(cls.builtIn).toBe(true);
+    const names = cls.properties.map(p => p.name);
+    expect(names).toContain('displayImage');
+    expect(names).toContain('xPosition');
+    expect(names).toContain('visible');
+    expect(names).toContain('dx');
+    expect(names).toContain('dy');
+  });
+
+  it('Sprite class has move() method', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sprite');
+    expect(cls.methods).toBeTruthy();
+    expect(cls.methods.some(m => m.name === 'move')).toBe(true);
+  });
+
+  it('CSSColor class exists with methods', () => {
+    const cls = app.S.classes.find(c => c.name === 'CSSColor');
+    expect(cls).toBeTruthy();
+    expect(cls.methods.length).toBe(5);
+    expect(cls.methods.some(m => m.name === 'setColor')).toBe(true);
+  });
+
+  it('Game class has tickIntervalSeconds property', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    const prop = cls.properties.find(p => p.name === 'tickIntervalSeconds');
+    expect(prop).toBeTruthy();
+    expect(prop.type).toBe('Real');
+  });
+});
+
+describe('V52: Built-in stage object', () => {
+  it('stage object exists', () => {
+    const stage = app.S.objects.find(o => o.name === 'stage');
+    expect(stage).toBeTruthy();
+    expect(stage.builtIn).toBe(true);
+  });
+
+  it('stage has xMax, yMax properties', () => {
+    const stage = app.S.objects.find(o => o.name === 'stage');
+    expect(stage.propertyValues.xMax).toBeTruthy();
+    expect(stage.propertyValues.yMax).toBeTruthy();
+  });
+});
+
+describe('V52: Run button', () => {
+  it('Run button exists in DOM', () => {
+    expect(document.getElementById('btn-run')).toBeTruthy();
+  });
+});
+
+describe('V52: Runtime engine', () => {
+  it('startRuntime validates start states and can run/stop', () => {
+    // Create a fresh object with a start -> state connection
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    const obj = app.addObject('runtimeTestObj', cls.id);
+    app.selectObject(obj.id);
+
+    // No start node yet — but no nodes at all, so no error
+    // Add a state without start
+    app.createNode('state', 100, 100);
+    app.saveActiveObjectChart();
+
+    const result1 = app.startRuntime();
+    expect(result1.ok).toBe(false);
+    expect(result1.errors.some(e => e.includes('Start state'))).toBe(true);
+
+    // Now add start node and connection
+    const startNode = app.createNode('start', 50, 50);
+    const stateNode = app.S.nodes.find(n => n.type === 'state');
+    app.createConnection(startNode, stateNode);
+    app.saveActiveObjectChart();
+
+    const result2 = app.startRuntime();
+    expect(result2.ok).toBe(true);
+    expect(app.isRunning()).toBe(true);
+
+    const contexts = app.getRuntimeContexts();
+    expect(contexts.length).toBeGreaterThanOrEqual(1);
+
+    app.stopRuntime();
+    expect(app.isRunning()).toBe(false);
   });
 });

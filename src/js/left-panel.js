@@ -258,9 +258,11 @@ function renderObjectProperties() {
     objectPropsList.appendChild(row);
   }
 
-  // Auto-generated sound methods
-  const methods = getSoundMethods(cls);
-  if (methods.length > 0) {
+  // All methods: explicit + auto-generated sound methods
+  const explicit = (cls.methods || []).map(m => ({ signature: m.signature }));
+  const sound = getSoundMethods(cls);
+  const allMethods = [...explicit, ...sound];
+  if (allMethods.length > 0) {
     const methodHeader = document.createElement('div');
     methodHeader.className = 'object-prop-row';
     methodHeader.style.fontWeight = '600';
@@ -269,14 +271,48 @@ function renderObjectProperties() {
     methodHeader.style.textTransform = 'uppercase';
     methodHeader.style.letterSpacing = '0.04em';
     methodHeader.style.paddingTop = '8px';
-    methodHeader.textContent = 'Sound Methods';
+    methodHeader.textContent = 'Methods';
     objectPropsList.appendChild(methodHeader);
 
-    for (const m of methods) {
+    for (const m of allMethods) {
       const mRow = document.createElement('div');
       mRow.className = 'object-prop-row sound-method-item';
       mRow.innerHTML = `<code class="method-signature">${m.signature}</code>`;
       objectPropsList.appendChild(mRow);
+    }
+  }
+
+  // For stage object, show its special properties
+  if (obj.stageProperties) {
+    const stageHeader = document.createElement('div');
+    stageHeader.className = 'object-prop-row';
+    stageHeader.style.fontWeight = '600';
+    stageHeader.style.color = 'var(--text-muted)';
+    stageHeader.style.fontSize = '10px';
+    stageHeader.style.textTransform = 'uppercase';
+    stageHeader.style.letterSpacing = '0.04em';
+    stageHeader.style.paddingTop = '8px';
+    stageHeader.textContent = 'Stage Properties';
+    objectPropsList.appendChild(stageHeader);
+
+    for (const sp of obj.stageProperties) {
+      const row = document.createElement('div');
+      row.className = 'object-prop-row';
+      const label = document.createElement('span');
+      label.className = 'object-prop-label';
+      label.textContent = sp.name;
+      row.appendChild(label);
+      const valueDiv = document.createElement('div');
+      valueDiv.className = 'object-prop-value';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = obj.propertyValues[sp.name] || '';
+      input.placeholder = sp.type;
+      input.addEventListener('input', () => { obj.propertyValues[sp.name] = input.value; });
+      input.addEventListener('keydown', (e) => e.stopPropagation());
+      valueDiv.appendChild(input);
+      row.appendChild(valueDiv);
+      objectPropsList.appendChild(row);
     }
   }
 }

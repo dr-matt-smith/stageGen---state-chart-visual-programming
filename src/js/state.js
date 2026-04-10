@@ -85,6 +85,23 @@ export function initDefaults() {
   };
   S.enumClasses.push(gameTypeEnum);
 
+  // ── CSSColor class ──
+  const cssColorClass = {
+    id: S.nextClassId++,
+    name: 'CSSColor',
+    properties: [],
+    methods: [
+      { name: 'setColor', signature: 'setColor(colorName)', description: 'Set CSS color by name' },
+      { name: 'setR', signature: 'setR(redValue)', description: 'Set red channel (0-255)' },
+      { name: 'setG', signature: 'setG(greenValue)', description: 'Set green channel (0-255)' },
+      { name: 'setB', signature: 'setB(blueValue)', description: 'Set blue channel (0-255)' },
+      { name: 'setTransparency', signature: 'setTransparency(alpha)', description: 'Set transparency (0..1)' },
+    ],
+    builtIn: true,
+  };
+  S.classes.push(cssColorClass);
+
+  // ── Game class ──
   const gameClass = {
     id: S.nextClassId++,
     name: 'Game',
@@ -92,11 +109,35 @@ export function initDefaults() {
       { name: 'name', type: 'String' },
       { name: 'description', type: 'String' },
       { name: 'category', type: 'EnumClass', enumClassId: gameTypeEnum.id },
+      { name: 'tickIntervalSeconds', type: 'Real', defaultValue: '0.1' },
     ],
     builtIn: true,
   };
   S.classes.push(gameClass);
 
+  // ── Sprite class ──
+  const spriteClass = {
+    id: S.nextClassId++,
+    name: 'Sprite',
+    properties: [
+      { name: 'name', type: 'String' },
+      { name: 'displayImage', type: 'Image' },
+      { name: 'moveSound', type: 'Sound' },
+      { name: 'visible', type: 'Boolean', defaultValue: 'true' },
+      { name: 'xPosition', type: 'Real' },
+      { name: 'yPosition', type: 'Real' },
+      { name: 'dx', type: 'Real' },
+      { name: 'dy', type: 'Real' },
+      { name: 'tint', type: 'Object', objectClassId: cssColorClass.id },
+    ],
+    methods: [
+      { name: 'move', signature: 'move()', description: 'Add dx to xPosition, dy to yPosition' },
+    ],
+    builtIn: true,
+  };
+  S.classes.push(spriteClass);
+
+  // ── Built-in objects ──
   const gameObj = {
     id: S.nextObjId++,
     name: 'game',
@@ -106,7 +147,29 @@ export function initDefaults() {
     connections: [],
     nextId: 1,
     nextConnId: 1,
+    propertyValues: { tickIntervalSeconds: '0.1' },
   };
   S.objects.push(gameObj);
+
+  const stageObj = {
+    id: S.nextObjId++,
+    name: 'stage',
+    classId: null, // special built-in, no class
+    builtIn: true,
+    nodes: [],
+    connections: [],
+    nextId: 1,
+    nextConnId: 1,
+    propertyValues: { xMin: '0', yMin: '0', xMax: '800', yMax: '600', backgroundColour: 'white' },
+    stageProperties: [
+      { name: 'xMin', type: 'Real' },
+      { name: 'yMin', type: 'Real' },
+      { name: 'xMax', type: 'Real' },
+      { name: 'yMax', type: 'Real' },
+      { name: 'backgroundColour', type: 'String' },
+    ],
+  };
+  S.objects.push(stageObj);
+
   S.activeObjectId = gameObj.id;
 }

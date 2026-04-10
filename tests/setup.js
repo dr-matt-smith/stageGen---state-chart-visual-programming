@@ -10,6 +10,7 @@ export function setupDOM() {
       <button id="btn-new-end" class="toolbar-btn palette-btn" draggable="false"></button>
       <button id="btn-new-choice" class="toolbar-btn palette-btn" draggable="false"></button>
       <button id="btn-new-terminate" class="toolbar-btn palette-btn" draggable="false"></button>
+      <button id="btn-run" class="toolbar-btn run-btn"><svg width="14" height="14" viewBox="0 0 14 14"><polygon points="2,1 12,7 2,13" fill="currentColor"/></svg> Run</button>
     </div>
     <div id="main-area">
       <div id="left-panel">
@@ -44,6 +45,7 @@ export function setupDOM() {
           <svg id="connections-svg" xmlns="http://www.w3.org/2000/svg"></svg>
         </div>
         <div id="canvas-no-object" style="display:none;">Select an object to view its state chart</div>
+        <div id="runtime-stage" style="display:none;"></div>
         <div id="zoom-toolbar">
           <button id="btn-fit-all" class="toolbar-btn"></button>
           <button id="btn-zoom-out" class="toolbar-btn"></button>

@@ -220,3 +220,41 @@ Version 51 - Events, guard conditions and actions
 - ✅ Added 8 new Playwright e2e tests (138 total)
 
 
+
+Version 52 - Sprite built-in class, runtime engine
+==================
+
+- ✅ Game class updated with tickIntervalSeconds property (Real, default 0.1)
+
+- ✅ Built-in Sprite class with properties:
+  - name, displayImage (Image), moveSound (Sound), visible (Boolean, default true),
+  - xPosition, yPosition, dx, dy (Real), tint (Object/CSSColor)
+  - ✅ move() method: adds dx to xPosition, dy to yPosition
+
+- ✅ Built-in CSSColor class with methods:
+  - setColor(colorName), setR(redValue), setG(greenValue), setB(blueValue), setTransparency(alpha)
+
+- ✅ Built-in "stage" object with properties:
+  - xMin, yMin, xMax, yMax (Real), backgroundColour (String)
+
+- ✅ Runtime engine (src/js/runtime.js) using functional state pattern
+  - ✅ Each object gets a runtime context with current state and property values
+  - ✅ Handles state transitions: entry behaviours → do behaviours → check events → exit → transition → enter new state
+  - ✅ Event evaluation: after(seconds), when(expression), keyDown(key)
+  - ✅ Guard condition evaluation with comparison operators
+  - ✅ Behaviour execution: property assignment, method calls, move() for sprites
+  - ✅ Simple expression evaluator for arithmetic and comparisons
+  - ✅ Keyboard event handling with key normalisation and SpecialKeyType mapping
+
+- ✅ Run/Stop button in toolbar
+  - ✅ Validates all objects (except stage) have Start states
+  - ✅ Shows error listing objects missing Start states
+  - ✅ Runtime stage overlay renders Sprite objects based on xPosition/yPosition/visible
+  - ✅ Stage background colour from stage object
+  - ✅ Tick interval from Game object's tickIntervalSeconds property
+  - ✅ Button toggles between Run (green play icon) and Stop (red square icon)
+
+- ✅ Inspector and Data panel show explicit class methods alongside auto-generated sound methods
+- ✅ Added 8 new Vitest unit tests (170 total)
+- ✅ Added 6 new Playwright e2e tests (144 total)
+

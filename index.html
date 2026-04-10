@@ -56,6 +56,16 @@
         Choice
       </button>
 
+      <div class="toolbar-sep"></div>
+
+      <!-- Run / Stop button -->
+      <button id="btn-run" class="toolbar-btn run-btn" title="Run the state machines">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+          <polygon points="2,1 12,7 2,13" fill="currentColor"/>
+        </svg>
+        Run
+      </button>
+
       <!-- Terminate (X) node -->
       <button id="btn-new-terminate" class="toolbar-btn palette-btn" draggable="false"
               title="Drag onto canvas to create a Terminate state">
@@ -117,6 +127,7 @@
         <svg id="connections-svg" xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
       <div id="canvas-no-object" style="display:none;">Select an object to view its state chart</div>
+      <div id="runtime-stage" style="display:none;"></div>
 
       <!-- ── Zoom toolbar (top-left of canvas) ───────────────────────────── -->
       <div id="zoom-toolbar">

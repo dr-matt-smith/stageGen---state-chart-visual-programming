@@ -797,16 +797,23 @@ test.describe('V44: Left panel visibility', () => {
     await expect(page.locator('.left-panel-section')).toHaveCount(4);
   });
 
-  test('objects list contains default game object', async ({ page }) => {
+  test('objects list contains default game and stage objects', async ({ page }) => {
     const items = page.locator('#objects-list .left-panel-item');
-    await expect(items).toHaveCount(1);
-    await expect(items.first()).toContainText('game');
+    await expect(items).toHaveCount(2);
+    const texts = await items.allTextContents();
+    expect(texts.some(t => t.includes('game'))).toBe(true);
+    expect(texts.some(t => t.includes('stage'))).toBe(true);
   });
 
-  test('classes list contains default Game class', async ({ page }) => {
+  test('classes list contains Game, Sprite, and CSSColor', async ({ page }) => {
+    // classes are minimized when object is active, expand first
+    await page.locator('#btn-edit-classes').click();
     const items = page.locator('#classes-list .left-panel-item');
-    await expect(items).toHaveCount(1);
-    await expect(items.first()).toContainText('Game');
+    await expect(items).toHaveCount(3);
+    const texts = await items.allTextContents();
+    expect(texts.some(t => t.includes('Game'))).toBe(true);
+    expect(texts.some(t => t.includes('Sprite'))).toBe(true);
+    expect(texts.some(t => t.includes('CSSColor'))).toBe(true);
   });
 
   test('enums list contains default GameType and SpecialKeyType', async ({ page }) => {
@@ -841,9 +848,10 @@ test.describe('V44: Left panel visibility', () => {
 
 test.describe('V44: Add operations via prompt', () => {
   test('clicking + on Objects shows inline form and creates a new object', async ({ page }) => {
+    const beforeCount = await page.locator('#objects-list .left-panel-item').count();
     await addObjectViaForm(page, 'enemy', 'Game');
-    await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(2);
-    await expect(page.locator('#objects-list .left-panel-item').nth(1)).toContainText('enemy');
+    await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(beforeCount + 1);
+    await expect(page.locator('#objects-list .left-panel-item').last()).toContainText('enemy');
   });
 
   test('clicking + on Classes creates a new class', async ({ page }) => {
@@ -878,27 +886,33 @@ test.describe('V44: Add operations via prompt', () => {
 test.describe('V44: Class inspector', () => {
   test('clicking a class shows its properties in inspector', async ({ page }) => {
     await page.evaluate(() => document.getElementById('classes-header').click());
-    await page.locator('#classes-list').waitFor({ state: 'visible' }); // deselect object
-    await page.locator('#classes-list .left-panel-item').first().click();
-    // Inspector should show properties including Name input
+    await page.locator('#classes-list').waitFor({ state: 'visible' });
+    // Click Game class specifically
+    const items = page.locator('#classes-list .left-panel-item');
+    const count = await items.count();
+    for (let i = 0; i < count; i++) {
+      if ((await items.nth(i).textContent()).includes('Game')) {
+        await items.nth(i).click();
+        break;
+      }
+    }
     await expect(page.locator('#inspector-props')).toBeVisible();
     const inputs = page.locator('#inspector-props input.inspector-input');
-    // At least: class name + 3 property name inputs = 4
-    const count = await inputs.count();
-    expect(count).toBeGreaterThanOrEqual(4);
+    const inputCount = await inputs.count();
+    expect(inputCount).toBeGreaterThanOrEqual(4);
   });
 
   test('class inspector shows Add Property button', async ({ page }) => {
     await page.evaluate(() => document.getElementById('classes-header').click());
     await page.locator('#classes-list').waitFor({ state: 'visible' });
-    await page.locator('#classes-list .left-panel-item').first().click();
+    await page.locator('#classes-list .left-panel-item:has-text("Game")').first().click();
     await expect(page.locator('button:has-text("+ Add Property")')).toBeVisible();
   });
 
   test('clicking Add Property adds a new property row', async ({ page }) => {
     await page.evaluate(() => document.getElementById('classes-header').click());
     await page.locator('#classes-list').waitFor({ state: 'visible' });
-    await page.locator('#classes-list .left-panel-item').first().click();
+    await page.locator('#classes-list .left-panel-item:has-text("Game")').first().click();
     const beforeCount = await page.locator('#inspector-props input.inspector-input').count();
     await page.locator('button:has-text("+ Add Property")').click();
     const afterCount = await page.locator('#inspector-props input.inspector-input').count();
@@ -908,7 +922,7 @@ test.describe('V44: Class inspector', () => {
   test('property type dropdown contains all expected types', async ({ page }) => {
     await page.evaluate(() => document.getElementById('classes-header').click());
     await page.locator('#classes-list').waitFor({ state: 'visible' });
-    await page.locator('#classes-list .left-panel-item').first().click();
+    await page.locator('#classes-list .left-panel-item:has-text("Game")').first().click();
     const select = page.locator('#inspector-props select.inspector-select').first();
     const options = await select.locator('option').allTextContents();
     expect(options).toContain('String');
@@ -1070,10 +1084,10 @@ test.describe('V46: Object properties in data panel', () => {
     await expect(page.locator('#section-object-props')).toBeVisible();
   });
 
-  test('shows 3 property rows for Game object', async ({ page }) => {
+  test('shows 4 property rows for Game object', async ({ page }) => {
     await page.locator('#objects-list .left-panel-item').first().click();
     const rows = page.locator('#object-props-list .object-prop-row');
-    await expect(rows).toHaveCount(3);
+    await expect(rows).toHaveCount(4);
   });
 
   test('property labels match Game class properties', async ({ page }) => {
@@ -1171,10 +1185,11 @@ test.describe('V47: Inline add-object form', () => {
   });
 
   test('submitting form creates object and hides form', async ({ page }) => {
+    const beforeCount = await page.locator('#objects-list .left-panel-item').count();
     await addObjectViaForm(page, 'rocket', 'Game');
     await expect(page.locator('#add-object-form')).toBeHidden();
-    await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(2);
-    await expect(page.locator('#objects-list .left-panel-item').nth(1)).toContainText('rocket');
+    await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(beforeCount + 1);
+    await expect(page.locator('#objects-list .left-panel-item').last()).toContainText('rocket');
   });
 
   test('pressing Enter in name input submits the form', async ({ page }) => {
@@ -1288,7 +1303,7 @@ test.describe('V48: Class CRUD in class mode', () => {
 
   test('clicking a class in class mode shows its properties in inspector', async ({ page }) => {
     await page.locator('#btn-edit-classes').click();
-    await page.locator('#classes-list .left-panel-item').first().click();
+    await page.locator('#classes-list .left-panel-item:has-text("Game")').first().click();
     await expect(page.locator('#inspector-props')).toBeVisible();
   });
 
@@ -1546,5 +1561,74 @@ test.describe('V51: SpecialKeyType enum', () => {
 test.describe('V51: Load JSON button', () => {
   test('Load JSON button is visible', async ({ page }) => {
     await expect(page.locator('#btn-load-json')).toBeVisible();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V52 — Sprite, CSSColor, Stage, Runtime engine
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('V52: Built-in classes and objects', () => {
+  test('Sprite class appears in class list', async ({ page }) => {
+    await page.locator('#btn-edit-classes').click();
+    const items = page.locator('#classes-list .left-panel-item');
+    const texts = await items.allTextContents();
+    expect(texts.some(t => t.includes('Sprite'))).toBe(true);
+  });
+
+  test('CSSColor class appears in class list', async ({ page }) => {
+    await page.locator('#btn-edit-classes').click();
+    const texts = await page.locator('#classes-list .left-panel-item').allTextContents();
+    expect(texts.some(t => t.includes('CSSColor'))).toBe(true);
+  });
+
+  test('stage object appears in objects list', async ({ page }) => {
+    const items = page.locator('#objects-list .left-panel-item');
+    const texts = await items.allTextContents();
+    expect(texts.some(t => t.includes('stage'))).toBe(true);
+  });
+});
+
+test.describe('V52: Run button', () => {
+  test('Run button is visible in toolbar', async ({ page }) => {
+    await expect(page.locator('#btn-run')).toBeVisible();
+  });
+
+  test('Run button shows error when object has nodes but no start state', async ({ page }) => {
+    // Add a state node to game (no start)
+    await dragNewNode(page, '#btn-new-state');
+    // Try to run - should get alert
+    page.once('dialog', async dialog => {
+      expect(dialog.message()).toContain('Start state');
+      await dialog.accept();
+    });
+    await page.locator('#btn-run').click();
+  });
+
+  test('Run button starts and stops runtime with valid state chart', async ({ page }) => {
+    // Create a valid state chart: start -> state
+    await dragNewNode(page, '#btn-new-start', -100, -30);
+    await dragNewNode(page, '#btn-new-state', 100, -30);
+
+    // Connect them
+    const startNode = page.locator('.start-node');
+    await startNode.click();
+    const connHandle = page.locator('.conn-handle');
+    if (await connHandle.count() > 0) {
+      const stateNode = page.locator('.state-node');
+      await connHandle.dragTo(stateNode);
+    }
+
+    // Click Run
+    await page.locator('#btn-run').click();
+    // Runtime stage should be visible
+    await expect(page.locator('#runtime-stage')).toBeVisible();
+    // Button should show Stop
+    await expect(page.locator('#btn-run')).toHaveClass(/running/);
+
+    // Click Stop
+    await page.locator('#btn-run').click();
+    await expect(page.locator('#runtime-stage')).toBeHidden();
+    await expect(page.locator('#btn-run')).not.toHaveClass(/running/);
   });
 });

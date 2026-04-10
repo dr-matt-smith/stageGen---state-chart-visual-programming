@@ -16,6 +16,34 @@ html, body {
   user-select: none;
 }
 
+/* ── Run button ────────────────────────────────────────────────────────────── */
+.run-btn {
+  color: #22c55e;
+}
+
+.run-btn.running {
+  color: #ef4444;
+}
+
+/* ── Runtime stage overlay ─────────────────────────────────────────────────── */
+#runtime-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 300;
+  overflow: hidden;
+}
+
+.runtime-sprite {
+  position: absolute;
+  pointer-events: none;
+}
+
+.runtime-sprite img {
+  display: block;
+  max-width: 64px;
+  max-height: 64px;
+}
+
 /* ── Node executing highlight ──────────────────────────────────────────────── */
 .diagram-node.node-executing {
   outline: 2px solid #22c55e;

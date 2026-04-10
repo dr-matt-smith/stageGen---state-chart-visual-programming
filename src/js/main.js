@@ -21,6 +21,7 @@ import { renderLeftPanel, selectObject, deselectObject, enterClassMode, enterObj
          addObject, addClass, addEnumClass,
          deleteObject, deleteClass, deleteEnumClass, selectClassInPanel, selectEnumInPanel,
          saveActiveObjectChart } from './left-panel.js';
+import { startRuntime, stopRuntime, isRunning, setRuntimeCallbacks, getRuntimeContexts } from './runtime.js';
 
 // ── Toolbar: Fit All ─────────────────────────────────────────────────────────
 
@@ -582,6 +583,80 @@ themeToggleBtn.addEventListener('click', () => {
   }
 });
 
+// ── Run / Stop ──────────────────────────────────────────────────────────────
+
+const btnRun      = document.getElementById('btn-run');
+const runtimeStage = document.getElementById('runtime-stage');
+
+btnRun.addEventListener('click', () => {
+  if (isRunning()) {
+    stopRuntime();
+    return;
+  }
+  // Save active object chart before running
+  saveActiveObjectChart();
+  const result = startRuntime();
+  if (!result.ok) {
+    alert('Cannot run:\n' + result.errors.join('\n'));
+    return;
+  }
+});
+
+setRuntimeCallbacks(
+  // onStart
+  (contexts) => {
+    btnRun.classList.add('running');
+    btnRun.querySelector('svg').innerHTML = '<rect x="2" y="2" width="10" height="10" fill="currentColor"/>';
+    btnRun.childNodes[btnRun.childNodes.length - 1].textContent = ' Stop';
+    runtimeStage.style.display = '';
+    // Set stage background
+    const stageCtx = contexts.find(c => c.objName === 'stage');
+    if (stageCtx) {
+      runtimeStage.style.background = stageCtx.props.backgroundColour || 'white';
+    }
+    renderSprites(contexts);
+  },
+  // onTick
+  (contexts) => {
+    renderSprites(contexts);
+  },
+  // onStop
+  () => {
+    btnRun.classList.remove('running');
+    btnRun.querySelector('svg').innerHTML = '<polygon points="2,1 12,7 2,13" fill="currentColor"/>';
+    btnRun.childNodes[btnRun.childNodes.length - 1].textContent = ' Run';
+    runtimeStage.style.display = 'none';
+    runtimeStage.innerHTML = '';
+  }
+);
+
+function renderSprites(contexts) {
+  runtimeStage.innerHTML = '';
+  for (const ctx of contexts) {
+    if (ctx.className !== 'Sprite') continue;
+    if (ctx.props.visible === 'false') continue;
+
+    const el = document.createElement('div');
+    el.className = 'runtime-sprite';
+    el.style.left = `${parseFloat(ctx.props.xPosition) || 0}px`;
+    el.style.top  = `${parseFloat(ctx.props.yPosition) || 0}px`;
+
+    if (ctx.props.displayImage) {
+      const img = document.createElement('img');
+      img.src = ctx.props.displayImage;
+      img.alt = ctx.objName;
+      el.appendChild(img);
+    } else {
+      el.style.width = '32px';
+      el.style.height = '32px';
+      el.style.background = '#3b82f6';
+      el.style.borderRadius = '4px';
+    }
+
+    runtimeStage.appendChild(el);
+  }
+}
+
 // ── Left panel ──────────────────────────────────────────────────────────────
 
 initDefaults();
@@ -719,3 +794,4 @@ export { renderLeftPanel, selectObject, deselectObject, enterClassMode, enterObj
          addObject, addClass, addEnumClass,
          deleteObject, deleteClass, deleteEnumClass,
          selectClassInPanel, selectEnumInPanel, saveActiveObjectChart } from './left-panel.js';
+export { startRuntime, stopRuntime, isRunning, getRuntimeContexts } from './runtime.js';
