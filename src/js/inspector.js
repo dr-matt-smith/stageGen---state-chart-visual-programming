@@ -219,6 +219,7 @@ function renderConnInspector(c) {
     <option value="after">after(seconds)</option>
     <option value="when">when(expression)</option>
     <option value="keyDown">keyDown(key)</option>
+    <option value="keyUp">keyUp(key)</option>
   `;
   if (c.event) eventTypeSelect.value = c.event.type;
   eventTypeSelect.addEventListener('change', () => {
@@ -238,7 +239,7 @@ function renderConnInspector(c) {
   eventTd.appendChild(eventTypeSelect);
 
   if (c.event) {
-    if (c.event.type === 'keyDown') {
+    if (c.event.type === 'keyDown' || c.event.type === 'keyUp') {
       // Key input: allow single character (forced uppercase) or SpecialKeyType dropdown
       const keyWrapper = document.createElement('div');
       keyWrapper.style.display = 'flex';
@@ -779,5 +780,58 @@ export function showJsonLoad() {
 
   document.addEventListener('keydown', function handler(e) {
     if (e.key === 'Escape') { close(); document.removeEventListener('keydown', handler); }
+  });
+}
+
+// ── Load Example ────────────────────────────────────────────────────────────
+
+export function showLoadExample(exampleFiles) {
+  if (!exampleFiles || exampleFiles.length === 0) {
+    alert('No example files found in public/examples/');
+    return;
+  }
+
+  if (!confirm('Loading an example will replace the current project. Continue?')) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'json-modal-overlay';
+  overlay.innerHTML = `
+    <div id="json-modal">
+      <div id="json-modal-header">
+        <span>Load Example</span>
+        <div id="json-modal-actions">
+          <button id="json-modal-close" class="json-modal-btn" title="Close">&times;</button>
+        </div>
+      </div>
+      <div id="json-modal-body" style="padding:0;"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const body = overlay.querySelector('#json-modal-body');
+  for (const file of exampleFiles) {
+    const item = document.createElement('div');
+    item.className = 'example-file-item';
+    item.textContent = file.replace(/^examples\//, '').replace(/\.(json|JSON)$/i, '');
+    item.dataset.path = file;
+    item.addEventListener('click', async () => {
+      try {
+        const resp = await fetch(file);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        close();
+        if (_onJsonLoaded) _onJsonLoaded(data);
+      } catch (err) {
+        alert('Failed to load example: ' + err.message);
+      }
+    });
+    body.appendChild(item);
+  }
+
+  const close = () => overlay.remove();
+  overlay.querySelector('#json-modal-close').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function escHandler(e) {
+    if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); }
   });
 }

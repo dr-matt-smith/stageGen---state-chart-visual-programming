@@ -5,6 +5,13 @@ import { PROPERTY_TYPES } from './config.js';
 import { imageFiles, audioFiles } from './asset-manifest.js';
 import { getSoundMethods } from './inspector.js';
 import { canvasEl, connSvg, mmStatesEl } from './dom-refs.js';
+import { buildNodeElement, fitLabelFontSize } from './nodes/node-element.js';
+import { positionMinimapNode } from './minimap.js';
+import { makeConnGroup, updateConnection } from './connections/conn-render.js';
+import { selectConn as selectConnFn } from './connections/conn-selection.js';
+import { startConnEditing } from './connections/conn-editing.js';
+import { deleteConnection } from './connections/conn-model.js';
+import { recalcPairOffsets } from './connections/conn-model.js';
 import { refreshMinimap } from './minimap.js';
 import { applyTransform } from './transform.js';
 import { updateInspector } from './inspector.js';
@@ -26,6 +33,10 @@ const classesHeader    = document.getElementById('classes-header');
 const enumsHeader      = document.getElementById('enums-header');
 const canvasNoObject   = document.getElementById('canvas-no-object');
 const btnEditClasses   = document.getElementById('btn-edit-classes');
+
+// Callback for wiring node events (set by main.js)
+let _wireNodeEvents = null;
+export function setWireNodeEvents(fn) { _wireNodeEvents = fn; }
 
 // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -82,20 +93,11 @@ function renderObjectsList() {
       item.appendChild(classSpan);
     }
 
-    if (!obj.builtIn) {
-      const delBtn = document.createElement('button');
-      delBtn.className = 'left-panel-delete-btn';
-      delBtn.title = 'Delete object';
-      delBtn.textContent = '\u00d7';
-      delBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (!confirm(`Delete object "${obj.name}"?`)) return;
-        deleteObject(obj.id);
-      });
-      item.appendChild(delBtn);
-    }
-
     item.addEventListener('click', () => selectObject(obj.id));
+    item.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      showObjectContextMenu(obj, e.clientX, e.clientY);
+    });
     objectsList.appendChild(item);
   }
 }
@@ -166,6 +168,67 @@ function renderEnumsList() {
     item.addEventListener('click', () => selectEnumInPanel(en.id));
     enumsList.appendChild(item);
   }
+}
+
+// ── Object context menu ─────────────────────────────────────────────────────
+
+let objCtxMenu = null;
+
+function removeObjCtxMenu() {
+  if (objCtxMenu) { objCtxMenu.remove(); objCtxMenu = null; }
+}
+
+function showObjectContextMenu(obj, clientX, clientY) {
+  removeObjCtxMenu();
+
+  objCtxMenu = document.createElement('div');
+  objCtxMenu.className = 'object-ctx-menu';
+  objCtxMenu.style.left = `${clientX}px`;
+  objCtxMenu.style.top  = `${clientY}px`;
+
+  // Duplicate
+  const dupBtn = document.createElement('div');
+  dupBtn.className = 'object-ctx-item';
+  dupBtn.textContent = 'Duplicate';
+  dupBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    removeObjCtxMenu();
+    duplicateObject(obj);
+  });
+  objCtxMenu.appendChild(dupBtn);
+
+  // Delete (only for non-built-in)
+  if (!obj.builtIn) {
+    const delBtn = document.createElement('div');
+    delBtn.className = 'object-ctx-item object-ctx-delete';
+    delBtn.textContent = 'Delete';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeObjCtxMenu();
+      if (!confirm(`Delete object "${obj.name}"?`)) return;
+      deleteObject(obj.id);
+    });
+    objCtxMenu.appendChild(delBtn);
+  }
+
+  document.body.appendChild(objCtxMenu);
+
+  const close = (ev) => {
+    if (objCtxMenu && objCtxMenu.contains(ev.target)) return;
+    removeObjCtxMenu();
+    document.removeEventListener('mousedown', close);
+  };
+  setTimeout(() => document.addEventListener('mousedown', close), 0);
+}
+
+export function duplicateObject(srcObj) {
+  const newObj = addObject(srcObj.name + ' copy', srcObj.classId);
+  // Copy property values
+  if (srcObj.propertyValues) {
+    newObj.propertyValues = { ...srcObj.propertyValues };
+  }
+  renderLeftPanel();
+  return newObj;
 }
 
 // ── Object properties in data panel ─────────────────────────────────────────
@@ -348,14 +411,59 @@ export function selectObject(id) {
     S.nextId = obj.nextId;
     S.nextConnId = obj.nextConnId;
 
-    // Re-attach DOM elements to the canvas
+    // Re-attach or create DOM elements for nodes
+    const needsFit = [];
     for (const n of S.nodes) {
-      if (n.el) canvasEl.appendChild(n.el);
-      if (n.mmEl) mmStatesEl.appendChild(n.mmEl);
+      if (!n.el) {
+        // Hydrate: build DOM from data
+        n.el = buildNodeElement(n.type, n.id);
+        n.el.style.left   = `${n.x}px`;
+        n.el.style.top    = `${n.y}px`;
+        n.el.style.width  = `${n.w}px`;
+        n.el.style.height = `${n.h}px`;
+        const labelEl = n.el.querySelector('.node-label');
+        if (labelEl && n.label) labelEl.textContent = n.label;
+
+        n.mmEl = document.createElement('div');
+        n.mmEl.className = `minimap-node minimap-${n.type}-node`;
+
+        if (_wireNodeEvents) _wireNodeEvents(n);
+        needsFit.push(n);
+      }
+      canvasEl.appendChild(n.el);
+      mmStatesEl.appendChild(n.mmEl);
     }
+    // Fit font sizes after all nodes are in the DOM (so measurements work)
+    for (const n of needsFit) {
+      fitLabelFontSize(n);
+      positionMinimapNode(n);
+    }
+    // Re-attach or create DOM elements for connections
     for (const c of S.connections) {
-      if (c.group) connSvg.appendChild(c.group);
+      if (!c.group) {
+        // Hydrate: build SVG group from data
+        c.group = makeConnGroup();
+        c.curveOffset = c.curveOffset || 0;
+
+        c.group.querySelector('.conn-hitarea').addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectConnFn(c);
+        });
+        const lblEl = c.group.querySelector('.conn-label');
+        lblEl.addEventListener('click', (e) => { e.stopPropagation(); selectConnFn(c); });
+        lblEl.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          selectConnFn(c);
+          startConnEditing(c);
+        });
+        c.group.querySelector('.conn-delete').addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteConnection(c);
+        });
+      }
+      connSvg.appendChild(c.group);
     }
+    recalcPairOffsets();
   }
 
   refreshMinimap();

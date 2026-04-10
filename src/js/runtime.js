@@ -14,6 +14,7 @@ let running = false;
 let tickTimer = null;
 let contexts = [];       // runtime context per object
 let keyState = new Set(); // currently pressed keys
+let keyUpState = new Set(); // keys released since last tick
 let startTime = 0;
 
 export function isRunning() { return running; }
@@ -170,6 +171,9 @@ function evaluateEvent(conn, ctx) {
     case 'keyDown': {
       return keyState.has(value);
     }
+    case 'keyUp': {
+      return keyUpState.has(value);
+    }
     default:
       return false;
   }
@@ -236,6 +240,9 @@ function tick() {
     }
   }
 
+  // Clear keyUp state after processing all contexts
+  keyUpState.clear();
+
   if (_onTick) _onTick(contexts);
 }
 
@@ -268,6 +275,7 @@ export function startRuntime() {
   running = true;
   startTime = Date.now();
   keyState.clear();
+  keyUpState.clear();
   contexts = [];
 
   // Create runtime contexts for each object
@@ -312,6 +320,7 @@ export function stopRuntime() {
   document.removeEventListener('keydown', onKeyDown);
   document.removeEventListener('keyup', onKeyUp);
   keyState.clear();
+  keyUpState.clear();
   if (_onStop) _onStop();
   contexts = [];
 }
@@ -341,5 +350,7 @@ function onKeyDown(e) {
 
 function onKeyUp(e) {
   if (!running) return;
-  keyState.delete(normaliseKey(e));
+  const key = normaliseKey(e);
+  keyState.delete(key);
+  keyUpState.add(key);
 }

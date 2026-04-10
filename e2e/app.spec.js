@@ -824,9 +824,13 @@ test.describe('V44: Left panel visibility', () => {
     expect(texts.some(t => t.includes('SpecialKeyType'))).toBe(true);
   });
 
-  test('game object has no delete button', async ({ page }) => {
+  test('game object context menu has no Delete option', async ({ page }) => {
     const item = page.locator('#objects-list .left-panel-item').first();
-    await expect(item.locator('.left-panel-delete-btn')).toHaveCount(0);
+    await item.click({ button: 'right' });
+    await expect(page.locator('.object-ctx-menu')).toBeVisible();
+    await expect(page.locator('.object-ctx-delete')).toHaveCount(0);
+    // Dismiss menu
+    await page.mouse.click(0, 0);
   });
 
   test('add object button is visible', async ({ page }) => {
@@ -1207,23 +1211,30 @@ test.describe('V47: Inline add-object form', () => {
   });
 });
 
-test.describe('V47: Delete object confirmation', () => {
-  test('deleting an object shows a confirmation dialog', async ({ page }) => {
-    // Add a deletable object
+test.describe('V47: Delete object via context menu', () => {
+  test('right-click shows context menu with Delete and Duplicate', async ({ page }) => {
+    await addObjectViaForm(page, 'ctxTest', 'Game');
+    const item = page.locator('#objects-list .left-panel-item').last();
+    await item.click({ button: 'right' });
+    await expect(page.locator('.object-ctx-menu')).toBeVisible();
+    await expect(page.locator('.object-ctx-item:has-text("Delete")')).toBeVisible();
+    await expect(page.locator('.object-ctx-item:has-text("Duplicate")')).toBeVisible();
+    await page.mouse.click(0, 0); // dismiss
+  });
+
+  test('deleting via context menu shows confirmation dialog', async ({ page }) => {
     await addObjectViaForm(page, 'toDelete', 'Game');
     const itemCount = await page.locator('#objects-list .left-panel-item').count();
 
-    // Set up dialog handler to accept
     page.once('dialog', async dialog => {
       expect(dialog.type()).toBe('confirm');
       expect(dialog.message()).toContain('toDelete');
       await dialog.accept();
     });
 
-    // Hover and click delete
     const item = page.locator('#objects-list .left-panel-item').last();
-    await item.hover();
-    await item.locator('.left-panel-delete-btn').click();
+    await item.click({ button: 'right' });
+    await page.locator('.object-ctx-delete').click();
 
     await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(itemCount - 1);
   });
@@ -1232,16 +1243,27 @@ test.describe('V47: Delete object confirmation', () => {
     await addObjectViaForm(page, 'keepMe', 'Game');
     const itemCount = await page.locator('#objects-list .left-panel-item').count();
 
-    // Dismiss the dialog
     page.once('dialog', async dialog => {
       await dialog.dismiss();
     });
 
     const item = page.locator('#objects-list .left-panel-item').last();
-    await item.hover();
-    await item.locator('.left-panel-delete-btn').click();
+    await item.click({ button: 'right' });
+    await page.locator('.object-ctx-delete').click();
 
     await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(itemCount);
+  });
+
+  test('duplicate via context menu creates a copy', async ({ page }) => {
+    await addObjectViaForm(page, 'origObj', 'Game');
+    const beforeCount = await page.locator('#objects-list .left-panel-item').count();
+
+    const item = page.locator('#objects-list .left-panel-item').last();
+    await item.click({ button: 'right' });
+    await page.locator('.object-ctx-item:has-text("Duplicate")').click();
+
+    await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(beforeCount + 1);
+    await expect(page.locator('#objects-list .left-panel-item').last()).toContainText('origObj copy');
   });
 });
 

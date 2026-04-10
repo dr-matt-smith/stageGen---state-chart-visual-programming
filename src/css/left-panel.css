@@ -300,6 +300,40 @@
   border-radius: 3px;
 }
 
+/* ── Object context menu ────────────────────────────────────────────────────── */
+
+.object-ctx-menu {
+  position: fixed;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px var(--shadow-color);
+  z-index: 9999;
+  min-width: 120px;
+  padding: 4px 0;
+  user-select: none;
+}
+
+.object-ctx-item {
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.08s;
+}
+
+.object-ctx-item:hover {
+  background: var(--bg-selected);
+}
+
+.object-ctx-delete {
+  color: #ef4444;
+}
+
+.object-ctx-delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
 /* ── No-object overlay ─────────────────────────────────────────────────────── */
 
 #canvas-no-object {

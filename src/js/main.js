@@ -15,12 +15,12 @@ import { cancelConnEditing } from './connections/conn-editing.js';
 import { getBorderPoint } from './connections/geometry.js';
 import { renderConnGroup, updateConnection } from './connections/conn-render.js';
 import { recalcPairOffsets } from './connections/conn-model.js';
-import { updateInspector, showJsonExport, showJsonLoad, setRenderLeftPanel, setOnJsonLoaded } from './inspector.js';
+import { updateInspector, showJsonExport, showJsonLoad, showLoadExample, setRenderLeftPanel, setOnJsonLoaded } from './inspector.js';
 import { S as _S2, initDefaults } from './state.js';
 import { renderLeftPanel, selectObject, deselectObject, enterClassMode, enterObjectMode,
          addObject, addClass, addEnumClass,
          deleteObject, deleteClass, deleteEnumClass, selectClassInPanel, selectEnumInPanel,
-         saveActiveObjectChart } from './left-panel.js';
+         saveActiveObjectChart, setWireNodeEvents } from './left-panel.js';
 import { startRuntime, stopRuntime, isRunning, setRuntimeCallbacks, getRuntimeContexts } from './runtime.js';
 
 // ── Toolbar: Fit All ─────────────────────────────────────────────────────────
@@ -262,7 +262,20 @@ function onNodeContextMenu(e) {
   showNodeContextMenu(node, e.clientX, e.clientY);
 }
 
-// Wire node events when nodes are created
+// Wire node events when nodes are created or hydrated
+setWireNodeEvents((node) => {
+  node.el.addEventListener('mousedown', onNodeMouseDown);
+  node.el.addEventListener('dblclick',  onNodeDblClick);
+  node.el.addEventListener('contextmenu', onNodeContextMenu);
+  const resetBtn = node.el.querySelector('.node-reset-btn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      resetNodeSize(node);
+    });
+  }
+});
+
 const _origCreateNode = createNode;
 
 export function createNodeWithEvents(type, worldX, worldY) {
@@ -497,6 +510,9 @@ S.onSelectionChange = updateInspector;
 document.getElementById('btn-export-json').addEventListener('click', showJsonExport);
 document.getElementById('btn-load-json').addEventListener('click', showJsonLoad);
 
+import { exampleFiles } from './asset-manifest.js';
+document.getElementById('btn-load-example').addEventListener('click', () => showLoadExample(exampleFiles));
+
 // Handle loaded JSON data
 setOnJsonLoaded((data) => {
   // Clear current state
@@ -548,19 +564,17 @@ setOnJsonLoaded((data) => {
     }
   }
 
-  // Select first object if available
+  // Select first object — this will hydrate its nodes/connections
   if (S.objects.length > 0) {
-    S.activeObjectId = S.objects[0].id;
-    S.nodes = S.objects[0].nodes;
-    S.connections = S.objects[0].connections;
-    S.nextId = S.objects[0].nextId;
-    S.nextConnId = S.objects[0].nextConnId;
+    // Set activeObjectId to null first so selectObject doesn't skip
+    S.activeObjectId = null;
+    selectObject(S.objects[0].id);
+  } else {
+    refreshMinimap();
+    applyTransform();
+    updateInspector();
+    renderLeftPanel();
   }
-
-  refreshMinimap();
-  applyTransform();
-  updateInspector();
-  renderLeftPanel();
 });
 
 // ── Inspector / Settings tabs ────────────────────────────────────────────────
@@ -787,11 +801,12 @@ export { createConnection, deleteConnection } from './connections/conn-model.js'
 export { updateConnection } from './connections/conn-render.js';
 export { selectConn, deselectConn } from './connections/conn-selection.js';
 export { getBorderPoint, getPairPerpendicular } from './connections/geometry.js';
-export { updateInspector, serialiseDiagram, getSoundMethods, showJsonLoad } from './inspector.js';
-export { imageFiles, audioFiles } from './asset-manifest.js';
+export { updateInspector, serialiseDiagram, getSoundMethods, showJsonLoad, showLoadExample } from './inspector.js';
+export { imageFiles, audioFiles, exampleFiles } from './asset-manifest.js';
 export { initDefaults } from './state.js';
 export { renderLeftPanel, selectObject, deselectObject, enterClassMode, enterObjectMode,
          addObject, addClass, addEnumClass,
          deleteObject, deleteClass, deleteEnumClass,
-         selectClassInPanel, selectEnumInPanel, saveActiveObjectChart } from './left-panel.js';
+         selectClassInPanel, selectEnumInPanel, saveActiveObjectChart,
+         duplicateObject } from './left-panel.js';
 export { startRuntime, stopRuntime, isRunning, getRuntimeContexts } from './runtime.js';

@@ -1,0 +1,202 @@
+{
+  "objects": [
+    {
+      "id": 1,
+      "name": "game",
+      "classId": 2,
+      "builtIn": true,
+      "nodes": [],
+      "connections": []
+    },
+    {
+      "id": 2,
+      "name": "stage",
+      "classId": null,
+      "builtIn": true,
+      "nodes": [],
+      "connections": []
+    },
+    {
+      "id": 3,
+      "name": "ship",
+      "classId": 3,
+      "nodes": [
+        {
+          "id": 1,
+          "type": "start",
+          "x": 245,
+          "y": 63,
+          "w": 30,
+          "h": 30
+        },
+        {
+          "id": 2,
+          "type": "state",
+          "x": 199,
+          "y": 211,
+          "w": 120,
+          "h": 50,
+          "label": "stationary"
+        },
+        {
+          "id": 3,
+          "type": "state",
+          "x": 3,
+          "y": 211,
+          "w": 120,
+          "h": 50,
+          "label": "moving left"
+        },
+        {
+          "id": 4,
+          "type": "state",
+          "x": 397,
+          "y": 212,
+          "w": 120,
+          "h": 50,
+          "label": "moving_right"
+        }
+      ],
+      "connections": [
+        {
+          "id": 1,
+          "fromId": 1,
+          "toId": 2,
+          "label": "transition"
+        },
+        {
+          "id": 2,
+          "fromId": 2,
+          "toId": 4,
+          "label": "transition",
+          "event": {
+            "type": "keyDown",
+            "value": "ARROW_RIGHT"
+          }
+        },
+        {
+          "id": 3,
+          "fromId": 2,
+          "toId": 3,
+          "label": "transition",
+          "event": {
+            "type": "keyDown",
+            "value": "ARROW_LEFT"
+          }
+        }
+      ]
+    }
+  ],
+  "classes": [
+    {
+      "id": 1,
+      "name": "CSSColor",
+      "builtIn": true,
+      "properties": []
+    },
+    {
+      "id": 2,
+      "name": "Game",
+      "builtIn": true,
+      "properties": [
+        {
+          "name": "name",
+          "type": "String"
+        },
+        {
+          "name": "description",
+          "type": "String"
+        },
+        {
+          "name": "category",
+          "type": "EnumClass",
+          "enumClassId": 2
+        },
+        {
+          "name": "tickIntervalSeconds",
+          "type": "Real",
+          "defaultValue": "0.1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Sprite",
+      "builtIn": true,
+      "properties": [
+        {
+          "name": "name",
+          "type": "String"
+        },
+        {
+          "name": "displayImage",
+          "type": "Image"
+        },
+        {
+          "name": "moveSound",
+          "type": "Sound"
+        },
+        {
+          "name": "visible",
+          "type": "Boolean",
+          "defaultValue": "true"
+        },
+        {
+          "name": "xPosition",
+          "type": "Real"
+        },
+        {
+          "name": "yPosition",
+          "type": "Real"
+        },
+        {
+          "name": "dx",
+          "type": "Real"
+        },
+        {
+          "name": "dy",
+          "type": "Real"
+        },
+        {
+          "name": "tint",
+          "type": "Object",
+          "objectClassId": 1
+        }
+      ]
+    }
+  ],
+  "enumClasses": [
+    {
+      "id": 1,
+      "name": "SpecialKeyType",
+      "builtIn": true,
+      "values": [
+        "SPACE",
+        "ESCAPE",
+        "ENTER",
+        "CONTROL",
+        "LEFT_SHIFT",
+        "RIGHT_SHIFT",
+        "WINDOWS_COMMAND",
+        "BACKSPACE",
+        "DELETE",
+        "ARROW_LEFT",
+        "ARROW_RIGHT",
+        "ARROW_UP",
+        "ARROW_DOWN"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "GameType",
+      "builtIn": true,
+      "values": [
+        "ARCADE",
+        "PLATFORMER",
+        "SHOOTER",
+        "PUZZLE",
+        "OTHER"
+      ]
+    }
+  ]
+}
