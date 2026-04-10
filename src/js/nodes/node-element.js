@@ -21,6 +21,12 @@ export function buildNodeElement(type, id) {
     el.innerHTML = '<span class="node-label-fixed">start</span>';
   } else if (type === 'end') {
     el.innerHTML = '<span class="node-label-fixed">end</span>';
+  } else if (type === 'terminate') {
+    el.innerHTML =
+      '<svg class="terminate-svg" viewBox="0 0 28 28" aria-hidden="true">' +
+        '<line x1="4" y1="4" x2="24" y2="24" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>' +
+        '<line x1="24" y1="4" x2="4" y2="24" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>' +
+      '</svg>';
   }
 
   // ID label at top-right inside the node

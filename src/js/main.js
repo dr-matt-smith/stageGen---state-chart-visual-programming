@@ -15,7 +15,7 @@ import { cancelConnEditing } from './connections/conn-editing.js';
 import { getBorderPoint } from './connections/geometry.js';
 import { renderConnGroup, updateConnection } from './connections/conn-render.js';
 import { recalcPairOffsets } from './connections/conn-model.js';
-import { updateInspector, showJsonExport, setRenderLeftPanel } from './inspector.js';
+import { updateInspector, showJsonExport, showJsonLoad, setRenderLeftPanel, setOnJsonLoaded } from './inspector.js';
 import { S as _S2, initDefaults } from './state.js';
 import { renderLeftPanel, selectObject, deselectObject, enterClassMode, enterObjectMode,
          addObject, addClass, addEnumClass,
@@ -86,7 +86,8 @@ function setupPaletteBtn(btnId, type) {
 setupPaletteBtn('btn-new-state',  'state');
 setupPaletteBtn('btn-new-start',  'start');
 setupPaletteBtn('btn-new-end',    'end');
-setupPaletteBtn('btn-new-choice', 'choice');
+setupPaletteBtn('btn-new-choice',     'choice');
+setupPaletteBtn('btn-new-terminate', 'terminate');
 
 function positionGhost(clientX, clientY) {
   const def = NODE_DEFAULTS[S.creatingNodeType];
@@ -393,6 +394,7 @@ document.addEventListener('mouseup', (e) => {
       if (S.reconnDrag.end === 'from' && conn.toId != null && n.id === conn.toId) return false;
       if (S.reconnDrag.end === 'to' && conn.fromId != null && n.id === conn.fromId) return false;
       if (S.reconnDrag.end === 'to' && n.type === 'start') return false;
+      if (S.reconnDrag.end === 'from' && n.type === 'terminate') return false;
       return world.x >= n.x && world.x <= n.x + n.w && world.y >= n.y && world.y <= n.y + n.h;
     });
     if (target) {
@@ -492,6 +494,73 @@ restoreBtn.addEventListener('click', () => {
 
 S.onSelectionChange = updateInspector;
 document.getElementById('btn-export-json').addEventListener('click', showJsonExport);
+document.getElementById('btn-load-json').addEventListener('click', showJsonLoad);
+
+// Handle loaded JSON data
+setOnJsonLoaded((data) => {
+  // Clear current state
+  if (S.activeNode) deactivateNode();
+  if (S.selectedConn) deselectConn();
+
+  // Clear canvas DOM
+  for (const n of S.nodes) { if (n.el) n.el.remove(); if (n.mmEl) n.mmEl.remove(); }
+  for (const c of S.connections) { if (c.group) c.group.remove(); }
+
+  // Reset state
+  S.nodes = [];
+  S.connections = [];
+  S.activeNode = null;
+  S.selectedConn = null;
+  S.selectedNodes = [];
+  S.activeObjectId = null;
+  S.selectedLeftPanelItem = null;
+  S.objects = [];
+  S.classes = [];
+  S.enumClasses = [];
+  S.nextId = 1;
+  S.nextConnId = 1;
+  S.nextObjId = 1;
+  S.nextClassId = 1;
+  S.nextEnumId = 1;
+
+  // Load data
+  if (data.enumClasses) {
+    for (const e of data.enumClasses) {
+      e.id = S.nextEnumId++;
+      S.enumClasses.push(e);
+    }
+  }
+  if (data.classes) {
+    for (const c of data.classes) {
+      c.id = S.nextClassId++;
+      S.classes.push(c);
+    }
+  }
+  if (data.objects) {
+    for (const o of data.objects) {
+      o.id = S.nextObjId++;
+      o.nodes = o.nodes || [];
+      o.connections = o.connections || [];
+      o.nextId = Math.max(1, ...o.nodes.map(n => n.id + 1), 1);
+      o.nextConnId = Math.max(1, ...o.connections.map(c => c.id + 1), 1);
+      S.objects.push(o);
+    }
+  }
+
+  // Select first object if available
+  if (S.objects.length > 0) {
+    S.activeObjectId = S.objects[0].id;
+    S.nodes = S.objects[0].nodes;
+    S.connections = S.objects[0].connections;
+    S.nextId = S.objects[0].nextId;
+    S.nextConnId = S.objects[0].nextConnId;
+  }
+
+  refreshMinimap();
+  applyTransform();
+  updateInspector();
+  renderLeftPanel();
+});
 
 // ── Inspector / Settings tabs ────────────────────────────────────────────────
 
@@ -643,7 +712,7 @@ export { createConnection, deleteConnection } from './connections/conn-model.js'
 export { updateConnection } from './connections/conn-render.js';
 export { selectConn, deselectConn } from './connections/conn-selection.js';
 export { getBorderPoint, getPairPerpendicular } from './connections/geometry.js';
-export { updateInspector, serialiseDiagram, getSoundMethods } from './inspector.js';
+export { updateInspector, serialiseDiagram, getSoundMethods, showJsonLoad } from './inspector.js';
 export { imageFiles, audioFiles } from './asset-manifest.js';
 export { initDefaults } from './state.js';
 export { renderLeftPanel, selectObject, deselectObject, enterClassMode, enterObjectMode,

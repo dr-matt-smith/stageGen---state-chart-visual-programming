@@ -693,18 +693,20 @@ describe('Export JSON button location', () => {
 // ─── Inspector shows state chart properties ─────────────────────────────────
 
 describe('Inspector shows state chart properties', () => {
-  it('Size, Position, and Connections are shown for state nodes', () => {
+  it('Type, ID, Name, and State Behaviours are shown for state nodes', () => {
     const node = app.createNode('state', 0, 0);
     app.activateNode(node);
     app.updateInspector();
 
     const allCells = Array.from(document.querySelectorAll('#inspector-table td'));
     const cellTexts = allCells.map(td => td.textContent);
-    expect(cellTexts).toContain('Size');
-    expect(cellTexts).toContain('Position');
-    expect(cellTexts).toContain('Connections');
     expect(cellTexts).toContain('Type');
     expect(cellTexts).toContain('ID');
+    expect(cellTexts).toContain('Name');
+    expect(cellTexts).toContain('State Behaviours');
+    expect(cellTexts).toContain('Entry /');
+    expect(cellTexts).toContain('Do /');
+    expect(cellTexts).toContain('Exit /');
   });
 });
 
@@ -844,10 +846,12 @@ describe('V44: Left panel rendering', () => {
     expect(items[0].textContent).toContain('Game');
   });
 
-  it('enums list contains GameType', () => {
+  it('enums list contains GameType and SpecialKeyType', () => {
     const items = document.querySelectorAll('#enums-list .left-panel-item');
-    expect(items.length).toBeGreaterThanOrEqual(1);
-    expect(items[0].textContent).toContain('GameType');
+    expect(items.length).toBeGreaterThanOrEqual(2);
+    const names = Array.from(items).map(i => i.textContent);
+    expect(names.some(n => n.includes('GameType'))).toBe(true);
+    expect(names.some(n => n.includes('SpecialKeyType'))).toBe(true);
   });
 
   it('game object has no delete button (builtIn)', () => {
@@ -1430,5 +1434,110 @@ describe('V50: Sound methods in data panel', () => {
     const methodItems = document.querySelectorAll('#object-props-list .sound-method-item');
     expect(methodItems.length).toBe(3);
     expect(methodItems[0].textContent).toContain('BgmPlay()');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V51 — Events, guard conditions, actions, terminate node
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V51: SpecialKeyType enum', () => {
+  it('SpecialKeyType built-in enum exists with expected values', () => {
+    const en = app.S.enumClasses.find(e => e.name === 'SpecialKeyType');
+    expect(en).toBeTruthy();
+    expect(en.builtIn).toBe(true);
+    expect(en.values).toContain('SPACE');
+    expect(en.values).toContain('ESCAPE');
+    expect(en.values).toContain('ARROW_LEFT');
+    expect(en.values).toContain('ARROW_DOWN');
+  });
+});
+
+describe('V51: Terminate node', () => {
+  it('can create a terminate node', () => {
+    const game = app.S.objects.find(o => o.name === 'game');
+    app.selectObject(game.id);
+    const node = app.createNode('terminate', 300, 300);
+    expect(node.type).toBe('terminate');
+    expect(node.el.classList.contains('terminate-node')).toBe(true);
+  });
+
+  it('terminate node has no connection handle (cannot be source)', () => {
+    const node = app.createNode('terminate', 350, 350);
+    app.activateNode(node);
+    const connHandle = node.el.querySelector('.conn-handle');
+    expect(connHandle).toBeNull();
+  });
+});
+
+describe('V51: State behaviours', () => {
+  it('state nodes have entryBehaviours, doBehaviours, exitBehaviours arrays', () => {
+    const node = app.createNode('state', 400, 400);
+    expect(node.entryBehaviours).toEqual([]);
+    expect(node.doBehaviours).toEqual([]);
+    expect(node.exitBehaviours).toEqual([]);
+  });
+
+  it('inspector shows Entry/Do/Exit sections for state nodes', () => {
+    const node = app.createNode('state', 450, 450);
+    app.activateNode(node);
+    app.updateInspector();
+    const cells = Array.from(document.querySelectorAll('#inspector-table td'));
+    const texts = cells.map(td => td.textContent);
+    expect(texts).toContain('Entry /');
+    expect(texts).toContain('Do /');
+    expect(texts).toContain('Exit /');
+  });
+
+  it('can add a behaviour to entry section', () => {
+    const node = app.createNode('state', 500, 500);
+    node.entryBehaviours.push('setX(10)');
+    app.activateNode(node);
+    app.updateInspector();
+    const inputs = document.querySelectorAll('.behaviour-row input');
+    expect(inputs.length).toBeGreaterThanOrEqual(1);
+    expect(inputs[0].value).toBe('setX(10)');
+  });
+});
+
+describe('V51: Connection event, guard, behaviours', () => {
+  it('connections have event, guardCondition, behaviours fields', () => {
+    const n1 = app.createNode('state', 600, 600);
+    const n2 = app.createNode('state', 700, 600);
+    app.createConnection(n1, n2);
+    const conn = app.S.connections[app.S.connections.length - 1];
+    expect(conn.event).toBeNull();
+    expect(conn.guardCondition).toBeNull();
+    expect(conn.behaviours).toEqual([]);
+  });
+
+  it('inspector shows Event, Guard, and Behaviours sections for connections', () => {
+    const conn = app.S.connections[app.S.connections.length - 1];
+    app.selectConn(conn);
+    app.updateInspector();
+    const cells = Array.from(document.querySelectorAll('#inspector-table td'));
+    const texts = cells.map(td => td.textContent);
+    expect(texts.some(t => t.includes('Event'))).toBe(true);
+    expect(texts.some(t => t.includes('Guard Condition'))).toBe(true);
+    expect(texts.some(t => t.includes('Transition Behaviours'))).toBe(true);
+  });
+});
+
+describe('V51: Serialisation includes V51 data', () => {
+  it('serialised output includes behaviours and events', () => {
+    const node = app.S.nodes.find(n => n.type === 'state' && n.entryBehaviours);
+    if (node) node.entryBehaviours = ['doSomething()'];
+    const json = app.serialiseDiagram();
+    const activeObj = json.objects.find(o => o.id === app.S.activeObjectId);
+    expect(activeObj).toBeTruthy();
+    // Check that nodes with behaviours include them
+    const nodesWithEntry = activeObj.nodes.filter(n => n.entryBehaviours);
+    expect(nodesWithEntry.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('V51: Load JSON button exists', () => {
+  it('Load JSON button exists in DOM', () => {
+    expect(document.getElementById('btn-load-json')).toBeTruthy();
   });
 });

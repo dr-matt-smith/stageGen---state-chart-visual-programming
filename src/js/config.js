@@ -7,10 +7,11 @@ export const ZOOM_MIN   = 0.08;
 export const ZOOM_MAX   = 5;
 
 export const NODE_DEFAULTS = {
-  state:  { w: 120, h: 50 },
-  start:  { w: 30,  h: 30 },
-  end:    { w: 36,  h: 36 },
-  choice: { w: 80,  h: 80 },
+  state:     { w: 120, h: 50 },
+  start:     { w: 30,  h: 30 },
+  end:       { w: 36,  h: 36 },
+  choice:    { w: 80,  h: 80 },
+  terminate: { w: 28,  h: 28 },
 };
 
 export const NODE_MIN_SIZE = {

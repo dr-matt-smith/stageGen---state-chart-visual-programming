@@ -13,6 +13,9 @@ export function createConnection(fromNode, toNode) {
     label: 'transition',
     curveOffset: 0,
     group,
+    event: null,          // { type: 'after'|'when'|'keyDown', value: string }
+    guardCondition: null, // string expression
+    behaviours: [],       // string[] transition behaviours
   };
   S.connections.push(conn);
 

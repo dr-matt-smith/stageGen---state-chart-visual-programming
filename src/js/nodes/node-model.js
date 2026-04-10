@@ -27,7 +27,8 @@ export function createNode(type, worldX, worldY) {
   mmEl.className = `minimap-node minimap-${type}-node`;
   mmStatesEl.appendChild(mmEl);
 
-  const node = { id, type, x: worldX, y: worldY, w, h, label, el, mmEl };
+  const node = { id, type, x: worldX, y: worldY, w, h, label, el, mmEl,
+    entryBehaviours: [], doBehaviours: [], exitBehaviours: [] };
   S.nodes.push(node);
 
   positionMinimapNode(node);

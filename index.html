@@ -55,6 +55,16 @@
         </svg>
         Choice
       </button>
+
+      <!-- Terminate (X) node -->
+      <button id="btn-new-terminate" class="toolbar-btn palette-btn" draggable="false"
+              title="Drag onto canvas to create a Terminate state">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+          <line x1="2" y1="2" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="12" y1="2" x2="2" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Terminate
+      </button>
     </div>
 
   </div>
@@ -157,6 +167,7 @@
 
       <div id="canvas-overlay-buttons">
         <button id="btn-export-json" class="toolbar-btn canvas-overlay-btn" title="Export diagram as JSON">Export JSON</button>
+        <button id="btn-load-json" class="toolbar-btn canvas-overlay-btn" title="Load diagram from JSON">Load JSON</button>
       </div>
 
       <!-- ── Minimap ─────────────────────────────────────────────────────── -->

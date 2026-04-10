@@ -275,6 +275,49 @@ html, body {
   background: #60a5fa;
 }
 
+/* ── Terminate state (X) ──────────────────────────────────────────────────── */
+.terminate-node {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef4444;
+  transition: color 0.12s;
+}
+
+.terminate-node .terminate-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.terminate-node:hover {
+  color: #f87171;
+}
+
+.terminate-node.node-active {
+  color: #fca5a5;
+}
+
+.terminate-node.dragging {
+  color: #fca5a5;
+}
+
+[data-theme="light"] .terminate-node {
+  color: #dc2626;
+}
+
+[data-theme="light"] .terminate-node:hover {
+  color: #b91c1c;
+}
+
+[data-theme="light"] .terminate-node.node-active {
+  color: #991b1b;
+}
+
 /* ── Node label ────────────────────────────────────────────────────────────── */
 .node-label {
   position: relative;

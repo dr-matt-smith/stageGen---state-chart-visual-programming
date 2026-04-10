@@ -9,6 +9,7 @@ export function setupDOM() {
       <button id="btn-new-start" class="toolbar-btn palette-btn" draggable="false"></button>
       <button id="btn-new-end" class="toolbar-btn palette-btn" draggable="false"></button>
       <button id="btn-new-choice" class="toolbar-btn palette-btn" draggable="false"></button>
+      <button id="btn-new-terminate" class="toolbar-btn palette-btn" draggable="false"></button>
     </div>
     <div id="main-area">
       <div id="left-panel">
@@ -54,6 +55,7 @@ export function setupDOM() {
         </div>
         <div id="canvas-overlay-buttons">
           <button id="btn-export-json" class="toolbar-btn">Export JSON</button>
+          <button id="btn-load-json" class="toolbar-btn">Load JSON</button>
         </div>
         <div id="minimap" style="width:200px;height:150px;">
           <div id="minimap-states"></div>

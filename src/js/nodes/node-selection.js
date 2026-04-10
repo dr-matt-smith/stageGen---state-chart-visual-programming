@@ -34,7 +34,7 @@ export function activateNode(node) {
   if (node.type === 'state' || node.type === 'choice') {
     addResizeHandles(node);
   }
-  if (node.type !== 'end') addConnHandle(node);
+  if (node.type !== 'end' && node.type !== 'terminate') addConnHandle(node);
   addNodeDeleteHandle(node);
   if (S.onSelectionChange) S.onSelectionChange();
 }

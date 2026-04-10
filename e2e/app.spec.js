@@ -809,10 +809,12 @@ test.describe('V44: Left panel visibility', () => {
     await expect(items.first()).toContainText('Game');
   });
 
-  test('enums list contains default GameType', async ({ page }) => {
+  test('enums list contains default GameType and SpecialKeyType', async ({ page }) => {
     const items = page.locator('#enums-list .left-panel-item');
-    await expect(items).toHaveCount(1);
-    await expect(items.first()).toContainText('GameType');
+    await expect(items).toHaveCount(2);
+    const texts = await items.allTextContents();
+    expect(texts.some(t => t.includes('GameType'))).toBe(true);
+    expect(texts.some(t => t.includes('SpecialKeyType'))).toBe(true);
   });
 
   test('game object has no delete button', async ({ page }) => {
@@ -934,7 +936,13 @@ test.describe('V44: Enum class inspector', () => {
   test('enum values are displayed in uppercase', async ({ page }) => {
     await page.evaluate(() => document.getElementById('classes-header').click());
     await page.locator('#classes-list').waitFor({ state: 'visible' });
-    await page.locator('#enums-list .left-panel-item').first().click();
+    // Click GameType specifically (not SpecialKeyType)
+    const enumItems = page.locator('#enums-list .left-panel-item');
+    const count = await enumItems.count();
+    for (let i = 0; i < count; i++) {
+      const text = await enumItems.nth(i).textContent();
+      if (text.includes('GameType')) { await enumItems.nth(i).click(); break; }
+    }
     // The first value after the name input should be ARCADE
     const inputs = page.locator('#inspector-props input.inspector-input');
     const secondInput = inputs.nth(1);
@@ -1452,5 +1460,91 @@ test.describe('V50: Sound methods in data panel', () => {
     await expect(methodItems.nth(0)).toContainText('FireSoundPlay()');
     await expect(methodItems.nth(1)).toContainText('FireSoundPause()');
     await expect(methodItems.nth(2)).toContainText('FireSoundSetLooping(boolean)');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V51 — Events, guard conditions, actions, terminate node
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('V51: Terminate node', () => {
+  test('terminate button is in the toolbar', async ({ page }) => {
+    await expect(page.locator('#btn-new-terminate')).toBeVisible();
+  });
+
+  test('can drag a terminate node onto the canvas', async ({ page }) => {
+    await dragNewNode(page, '#btn-new-terminate');
+    await expect(page.locator('.terminate-node')).toHaveCount(1);
+  });
+
+  test('terminate node has no connection handle', async ({ page }) => {
+    await dragNewNode(page, '#btn-new-terminate');
+    await page.locator('.terminate-node').click();
+    await expect(page.locator('.terminate-node .conn-handle')).toHaveCount(0);
+  });
+});
+
+test.describe('V51: State behaviours in inspector', () => {
+  test('selecting a state node shows Entry/Do/Exit sections', async ({ page }) => {
+    await dragNewNode(page, '#btn-new-state');
+    await page.locator('.state-node').click();
+    await expect(page.locator('#inspector-table')).toContainText('State Behaviours');
+    await expect(page.locator('#inspector-table')).toContainText('Entry /');
+    await expect(page.locator('#inspector-table')).toContainText('Do /');
+    await expect(page.locator('#inspector-table')).toContainText('Exit /');
+  });
+
+  test('can add a behaviour to Entry section', async ({ page }) => {
+    await dragNewNode(page, '#btn-new-state');
+    await page.locator('.state-node').click();
+    // Find the first "+ Add" button (for Entry /)
+    const addButtons = page.locator('#inspector-table button:has-text("+ Add")');
+    await addButtons.first().click();
+    const behaviourInputs = page.locator('.behaviour-row input');
+    await expect(behaviourInputs).toHaveCount(1);
+  });
+});
+
+test.describe('V51: Transition event/guard/behaviours', () => {
+  test('connection inspector shows Event, Guard, and Behaviours sections', async ({ page }) => {
+    // Create two state nodes and connect them
+    await dragNewNode(page, '#btn-new-state', -80, -20);
+    await dragNewNode(page, '#btn-new-state', 80, -20);
+    const nodes = page.locator('.state-node');
+    await expect(nodes).toHaveCount(2);
+
+    // Create connection by using connection handle
+    const nodeA = nodes.nth(0);
+    await nodeA.click();
+    const connHandle = page.locator('.conn-handle');
+    if (await connHandle.count() > 0) {
+      const nodeB = nodes.nth(1);
+      const bBox = await nodeB.boundingBox();
+      await connHandle.dragTo(nodeB, { targetPosition: { x: bBox.width / 2, y: bBox.height / 2 } });
+    }
+
+    // Click a connection if created
+    const connGroup = page.locator('.conn-group');
+    if (await connGroup.count() > 0) {
+      await connGroup.first().locator('.conn-hitarea').click({ force: true });
+      await expect(page.locator('#inspector-table')).toContainText('Event');
+      await expect(page.locator('#inspector-table')).toContainText('Guard Condition');
+      await expect(page.locator('#inspector-table')).toContainText('Transition Behaviours');
+    }
+  });
+});
+
+test.describe('V51: SpecialKeyType enum', () => {
+  test('SpecialKeyType appears in enum list', async ({ page }) => {
+    await page.locator('#btn-edit-classes').click();
+    const items = page.locator('#enums-list .left-panel-item');
+    const texts = await items.allTextContents();
+    expect(texts.some(t => t.includes('SpecialKeyType'))).toBe(true);
+  });
+});
+
+test.describe('V51: Load JSON button', () => {
+  test('Load JSON button is visible', async ({ page }) => {
+    await expect(page.locator('#btn-load-json')).toBeVisible();
   });
 });

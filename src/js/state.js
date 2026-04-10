@@ -64,6 +64,19 @@ export const S = {
 export function initDefaults() {
   if (S.enumClasses.length > 0) return; // already initialised
 
+  const specialKeyEnum = {
+    id: S.nextEnumId++,
+    name: 'SpecialKeyType',
+    values: [
+      'SPACE', 'ESCAPE', 'ENTER', 'CONTROL',
+      'LEFT_SHIFT', 'RIGHT_SHIFT', 'WINDOWS_COMMAND',
+      'BACKSPACE', 'DELETE',
+      'ARROW_LEFT', 'ARROW_RIGHT', 'ARROW_UP', 'ARROW_DOWN',
+    ],
+    builtIn: true,
+  };
+  S.enumClasses.push(specialKeyEnum);
+
   const gameTypeEnum = {
     id: S.nextEnumId++,
     name: 'GameType',

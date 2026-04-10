@@ -81,15 +81,10 @@ export function updateInspector() {
 function renderNodeInspector(n) {
   emptyMsg.style.display = 'none';
   propsContainer.style.display = '';
+  tbody.innerHTML = '';
 
+  // Type and ID rows
   const rows = [['Type', n.type], ['ID', n.id]];
-  if (n.type === 'state' || n.type === 'choice') {
-    rows.push(['Size', `${n.w} × ${n.h}`]);
-  }
-  rows.push(['Position', `${Math.round(n.x)}, ${Math.round(n.y)}`]);
-  const outgoing = S.connections.filter(c => c.fromId === n.id).length;
-  const incoming = S.connections.filter(c => c.toId === n.id).length;
-  rows.push(['Connections', `${outgoing} out / ${incoming} in`]);
   setPropsRows(rows);
 
   // Editable name field for state/choice nodes
@@ -115,14 +110,76 @@ function renderNodeInspector(n) {
     valueTd.appendChild(nameInput);
     nameRow.appendChild(nameTd);
     nameRow.appendChild(valueTd);
-    // Insert after the ID row (index 1)
-    const idRow = tbody.rows[1];
-    if (idRow && idRow.nextSibling) {
-      tbody.insertBefore(nameRow, idRow.nextSibling);
-    } else {
-      tbody.appendChild(nameRow);
-    }
+    tbody.appendChild(nameRow);
   }
+
+  // State behaviours (Entry / Do / Exit)
+  if (n.type === 'state') {
+    // Initialise arrays if missing
+    if (!n.entryBehaviours) n.entryBehaviours = [];
+    if (!n.doBehaviours) n.doBehaviours = [];
+    if (!n.exitBehaviours) n.exitBehaviours = [];
+
+    renderBehaviourSection('State Behaviours', null, true);
+    renderBehaviourSection('Entry /', n.entryBehaviours);
+    renderBehaviourSection('Do /', n.doBehaviours);
+    renderBehaviourSection('Exit /', n.exitBehaviours);
+  }
+}
+
+function renderBehaviourSection(title, behaviours, isMainHeader) {
+  const headerRow = document.createElement('tr');
+  const style = isMainHeader
+    ? 'font-weight:700;color:var(--text-primary);font-size:12px;padding-top:14px;padding-bottom:2px;'
+    : 'font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.05em;padding-top:10px;';
+  headerRow.innerHTML = `<td colspan="2" style="${style}">${escapeHtml(title)}</td>`;
+  tbody.appendChild(headerRow);
+
+  if (isMainHeader) return; // main header is just a title, no content
+
+  for (let i = 0; i < behaviours.length; i++) {
+    const tr = document.createElement('tr');
+    tr.className = 'behaviour-row';
+    const td = document.createElement('td');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'inspector-input';
+    input.value = behaviours[i];
+    input.addEventListener('input', () => { behaviours[i] = input.value; });
+    input.addEventListener('keydown', (e) => e.stopPropagation());
+    td.appendChild(input);
+
+    const delTd = document.createElement('td');
+    const delBtn = document.createElement('button');
+    delBtn.className = 'inspector-delete-btn';
+    delBtn.textContent = '\u00d7';
+    delBtn.title = 'Delete behaviour';
+    delBtn.addEventListener('click', () => {
+      behaviours.splice(i, 1);
+      renderNodeInspector(S.activeNode);
+    });
+    delTd.appendChild(delBtn);
+
+    tr.appendChild(td);
+    tr.appendChild(delTd);
+    tbody.appendChild(tr);
+  }
+
+  const addRow = document.createElement('tr');
+  const addTd = document.createElement('td');
+  addTd.colSpan = 2;
+  const addBtn = document.createElement('button');
+  addBtn.className = 'toolbar-btn';
+  addBtn.textContent = `+ Add`;
+  addBtn.style.fontSize = '10px';
+  addBtn.style.marginTop = '2px';
+  addBtn.addEventListener('click', () => {
+    behaviours.push('');
+    renderNodeInspector(S.activeNode);
+  });
+  addTd.appendChild(addBtn);
+  addRow.appendChild(addTd);
+  tbody.appendChild(addRow);
 }
 
 // ── Connection inspector ─────────────────────────────────────────────────────
@@ -130,16 +187,200 @@ function renderNodeInspector(n) {
 function renderConnInspector(c) {
   emptyMsg.style.display = 'none';
   propsContainer.style.display = '';
+  tbody.innerHTML = '';
+
+  // Initialise fields if missing
+  if (!c.event) c.event = null;
+  if (!c.guardCondition) c.guardCondition = null;
+  if (!c.behaviours) c.behaviours = [];
 
   const fromNode = c.fromId != null ? S.nodes.find(n => n.id === c.fromId) : null;
   const toNode   = c.toId   != null ? S.nodes.find(n => n.id === c.toId)   : null;
   setPropsRows([
     ['Type', 'transition'],
     ['ID', c.id],
-    ['Label', c.label],
     ['From', fromNode ? `${fromNode.type} (${fromNode.id})` : 'disconnected'],
     ['To',   toNode   ? `${toNode.type} (${toNode.id})`     : 'disconnected'],
   ]);
+
+  // ── Event section ──
+  const eventHeader = document.createElement('tr');
+  eventHeader.innerHTML = `<td colspan="2" style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.05em;padding-top:12px;">Event</td>`;
+  tbody.appendChild(eventHeader);
+
+  const eventRow = document.createElement('tr');
+  const eventTd = document.createElement('td');
+  eventTd.colSpan = 2;
+
+  const eventTypeSelect = document.createElement('select');
+  eventTypeSelect.className = 'inspector-select';
+  eventTypeSelect.innerHTML = `
+    <option value="">-- none --</option>
+    <option value="after">after(seconds)</option>
+    <option value="when">when(expression)</option>
+    <option value="keyDown">keyDown(key)</option>
+  `;
+  if (c.event) eventTypeSelect.value = c.event.type;
+  eventTypeSelect.addEventListener('change', () => {
+    if (eventTypeSelect.value === '') {
+      if (c.guardCondition) {
+        alert('Cannot remove event while a guard condition exists. Remove the guard condition first.');
+        eventTypeSelect.value = c.event ? c.event.type : '';
+        return;
+      }
+      c.event = null;
+    } else {
+      c.event = { type: eventTypeSelect.value, value: c.event ? c.event.value : '' };
+    }
+    renderConnInspector(c);
+  });
+  eventTypeSelect.addEventListener('keydown', (e) => e.stopPropagation());
+  eventTd.appendChild(eventTypeSelect);
+
+  if (c.event) {
+    if (c.event.type === 'keyDown') {
+      // Key input: allow single character (forced uppercase) or SpecialKeyType dropdown
+      const keyWrapper = document.createElement('div');
+      keyWrapper.style.display = 'flex';
+      keyWrapper.style.gap = '4px';
+      keyWrapper.style.marginTop = '4px';
+
+      const keyInput = document.createElement('input');
+      keyInput.type = 'text';
+      keyInput.className = 'inspector-input';
+      keyInput.style.flex = '1';
+      keyInput.maxLength = 1;
+      keyInput.placeholder = 'A-Z';
+      keyInput.value = (c.event.value && c.event.value.length === 1) ? c.event.value : '';
+      keyInput.addEventListener('input', () => {
+        keyInput.value = keyInput.value.toUpperCase();
+        if (keyInput.value) {
+          c.event.value = keyInput.value;
+          specialSelect.value = '';
+        }
+      });
+      keyInput.addEventListener('keydown', (e) => e.stopPropagation());
+
+      const specialSelect = document.createElement('select');
+      specialSelect.className = 'inspector-select';
+      specialSelect.style.flex = '2';
+      specialSelect.innerHTML = '<option value="">Special key...</option>';
+      const specialEnum = S.enumClasses.find(e => e.name === 'SpecialKeyType');
+      if (specialEnum) {
+        for (const v of specialEnum.values) {
+          const opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = v;
+          if (c.event.value === v) opt.selected = true;
+          specialSelect.appendChild(opt);
+        }
+      }
+      specialSelect.addEventListener('change', () => {
+        if (specialSelect.value) {
+          c.event.value = specialSelect.value;
+          keyInput.value = '';
+        }
+      });
+      specialSelect.addEventListener('keydown', (e) => e.stopPropagation());
+
+      keyWrapper.appendChild(keyInput);
+      keyWrapper.appendChild(specialSelect);
+      eventTd.appendChild(keyWrapper);
+    } else {
+      const valInput = document.createElement('input');
+      valInput.type = 'text';
+      valInput.className = 'inspector-input';
+      valInput.style.marginTop = '4px';
+      valInput.placeholder = c.event.type === 'after' ? 'seconds (e.g. 2.5)' : 'expression';
+      valInput.value = c.event.value || '';
+      valInput.addEventListener('input', () => { c.event.value = valInput.value; });
+      valInput.addEventListener('keydown', (e) => e.stopPropagation());
+      eventTd.appendChild(valInput);
+    }
+  }
+
+  eventRow.appendChild(eventTd);
+  tbody.appendChild(eventRow);
+
+  // ── Guard condition section (requires event) ──
+  const guardHeader = document.createElement('tr');
+  guardHeader.innerHTML = `<td colspan="2" style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.05em;padding-top:12px;">[ Guard Condition ]</td>`;
+  tbody.appendChild(guardHeader);
+
+  const guardRow = document.createElement('tr');
+  const guardTd = document.createElement('td');
+  guardTd.colSpan = 2;
+
+  if (!c.event) {
+    const hint = document.createElement('span');
+    hint.style.fontSize = '10px';
+    hint.style.color = 'var(--text-dim)';
+    hint.style.fontStyle = 'italic';
+    hint.textContent = 'Set an event first';
+    guardTd.appendChild(hint);
+  } else {
+    const guardInput = document.createElement('input');
+    guardInput.type = 'text';
+    guardInput.className = 'inspector-input';
+    guardInput.placeholder = 'condition expression';
+    guardInput.value = c.guardCondition || '';
+    guardInput.addEventListener('input', () => {
+      c.guardCondition = guardInput.value || null;
+    });
+    guardInput.addEventListener('keydown', (e) => e.stopPropagation());
+    guardTd.appendChild(guardInput);
+  }
+
+  guardRow.appendChild(guardTd);
+  tbody.appendChild(guardRow);
+
+  // ── Transition behaviours section ──
+  const behHeader = document.createElement('tr');
+  behHeader.innerHTML = `<td colspan="2" style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.05em;padding-top:12px;">/ Transition Behaviours</td>`;
+  tbody.appendChild(behHeader);
+
+  for (let i = 0; i < c.behaviours.length; i++) {
+    const tr = document.createElement('tr');
+    tr.className = 'behaviour-row';
+    const td = document.createElement('td');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'inspector-input';
+    input.value = c.behaviours[i];
+    input.addEventListener('input', () => { c.behaviours[i] = input.value; });
+    input.addEventListener('keydown', (e) => e.stopPropagation());
+    td.appendChild(input);
+
+    const delTd = document.createElement('td');
+    const delBtn = document.createElement('button');
+    delBtn.className = 'inspector-delete-btn';
+    delBtn.textContent = '\u00d7';
+    delBtn.addEventListener('click', () => {
+      c.behaviours.splice(i, 1);
+      renderConnInspector(c);
+    });
+    delTd.appendChild(delBtn);
+
+    tr.appendChild(td);
+    tr.appendChild(delTd);
+    tbody.appendChild(tr);
+  }
+
+  const addBehRow = document.createElement('tr');
+  const addBehTd = document.createElement('td');
+  addBehTd.colSpan = 2;
+  const addBehBtn = document.createElement('button');
+  addBehBtn.className = 'toolbar-btn';
+  addBehBtn.textContent = '+ Add';
+  addBehBtn.style.fontSize = '10px';
+  addBehBtn.style.marginTop = '2px';
+  addBehBtn.addEventListener('click', () => {
+    c.behaviours.push('');
+    renderConnInspector(c);
+  });
+  addBehTd.appendChild(addBehBtn);
+  addBehRow.appendChild(addBehTd);
+  tbody.appendChild(addBehRow);
 }
 
 // ── Class inspector ─────────────────────────────────────────────────────────
@@ -410,11 +651,17 @@ export function serialiseDiagram() {
         x: Math.round(n.x), y: Math.round(n.y),
         w: n.w, h: n.h,
         label: n.label || undefined,
+        ...(n.entryBehaviours && n.entryBehaviours.length ? { entryBehaviours: n.entryBehaviours } : {}),
+        ...(n.doBehaviours && n.doBehaviours.length ? { doBehaviours: n.doBehaviours } : {}),
+        ...(n.exitBehaviours && n.exitBehaviours.length ? { exitBehaviours: n.exitBehaviours } : {}),
       })),
       connections: (o.connections || []).map(c => ({
         id: c.id, fromId: c.fromId, toId: c.toId, label: c.label,
         ...(c.danglingFrom ? { danglingFrom: c.danglingFrom } : {}),
         ...(c.danglingTo   ? { danglingTo:   c.danglingTo }   : {}),
+        ...(c.event ? { event: c.event } : {}),
+        ...(c.guardCondition ? { guardCondition: c.guardCondition } : {}),
+        ...(c.behaviours && c.behaviours.length ? { behaviours: c.behaviours } : {}),
       })),
     })),
     classes: S.classes.map(c => ({
@@ -467,6 +714,66 @@ export function showJsonExport() {
     });
   });
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function handler(e) {
+    if (e.key === 'Escape') { close(); document.removeEventListener('keydown', handler); }
+  });
+}
+
+// ── Load JSON ───────────────────────────────────────────────────────────────
+
+let _onJsonLoaded = null;
+export function setOnJsonLoaded(fn) { _onJsonLoaded = fn; }
+
+export function showJsonLoad() {
+  if (!confirm('Loading a project will replace the current project. Continue?')) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'json-modal-overlay';
+  overlay.innerHTML = `
+    <div id="json-modal">
+      <div id="json-modal-header">
+        <span>Load Project JSON</span>
+        <div id="json-modal-actions">
+          <button id="json-load-btn" class="json-modal-btn" title="Load" style="font-size:12px;">Load</button>
+          <button id="json-modal-close" class="json-modal-btn" title="Close">&times;</button>
+        </div>
+      </div>
+      <div id="json-modal-body">
+        <textarea id="json-load-textarea" style="width:100%;min-height:200px;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-color);border-radius:4px;font-family:'SF Mono','Consolas','Menlo',monospace;font-size:11px;padding:8px;resize:vertical;" placeholder="Paste project JSON here..."></textarea>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  overlay.querySelector('#json-modal-close').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+  overlay.querySelector('#json-load-btn').addEventListener('click', () => {
+    const text = overlay.querySelector('#json-load-textarea').value.trim();
+    if (!text) return;
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      alert('Invalid JSON: ' + err.message);
+      return;
+    }
+    // Validate guard conditions require events
+    if (data.objects) {
+      for (const obj of data.objects) {
+        for (const c of (obj.connections || [])) {
+          if (c.guardCondition && !c.event) {
+            alert(`Error: Connection ${c.id} has a guard condition but no event.`);
+            return;
+          }
+        }
+      }
+    }
+    close();
+    if (_onJsonLoaded) _onJsonLoaded(data);
+  });
+
   document.addEventListener('keydown', function handler(e) {
     if (e.key === 'Escape') { close(); document.removeEventListener('keydown', handler); }
   });
