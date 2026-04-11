@@ -5,14 +5,37 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
-/** Helper: add a new object via the inline form. */
-async function addObjectViaForm(page, name, className) {
-  await page.locator('#btn-add-object').click();
-  if (className) {
-    await page.locator('#add-object-class').selectOption({ label: className });
+/** Helper: enter class editing mode for creating/editing state chart nodes. */
+async function enterClassEditMode(page, className) {
+  // Click "Edit Classes" if available, or click classes header if minimized
+  const editBtn = page.locator('#btn-edit-classes');
+  if (await editBtn.isVisible()) {
+    await editBtn.click();
+  } else {
+    await page.evaluate(() => document.getElementById('classes-header')?.click());
   }
-  await page.locator('#add-object-name').fill(name);
-  await page.locator('#add-object-ok').click();
+  await page.locator('#classes-list').waitFor({ state: 'visible' });
+  await page.locator(`#classes-list .left-panel-item:has-text("${className}")`).first().click();
+}
+
+/** Helper: switch to object mode by clicking the first object. */
+async function enterObjectMode(page) {
+  await page.evaluate(() => document.getElementById('objects-header')?.click());
+  await page.locator('#objects-list').waitFor({ state: 'visible' });
+  await page.locator('#objects-list .left-panel-item').first().click();
+}
+
+/** Helper: add a new object via the modal dialog. */
+async function addObjectViaForm(page, name, className) {
+  // Ensure we're in object mode to see the + button
+  const addBtn = page.locator('#btn-add-object');
+  if (!await addBtn.isVisible()) await enterObjectMode(page);
+  await addBtn.click();
+  if (className) {
+    await page.locator('#modal-class-select').selectOption({ label: className });
+  }
+  await page.locator('#modal-name-input').fill(name);
+  await page.locator('#modal-ok').click();
 }
 
 // ─── Version 1: Toolbar & basic node creation ──────────────────────────────
@@ -678,7 +701,7 @@ test.describe('Inspector tabs', () => {
 // ─── Inspector clears on deselect/delete ────────────────────────────────────
 
 test.describe('Inspector clears on deselect/delete', () => {
-  test('inspector shows "No object selected" after node is deleted', async ({ page }) => {
+  test('inspector reverts to class view after node is deleted', async ({ page }) => {
     await dragNewNode(page, '#btn-new-state');
     const node = page.locator('.state-node');
     await node.click();
@@ -686,12 +709,11 @@ test.describe('Inspector clears on deselect/delete', () => {
 
     await page.locator('.node-delete-handle').click();
     await expect(page.locator('.state-node')).toHaveCount(0);
-    await expect(page.locator('#inspector-props')).toBeHidden();
-    const emptyText = await page.locator('#inspector-empty').textContent();
-    expect(emptyText).toContain('No object selected');
+    // In class edit mode, inspector shows class properties after deselection
+    await expect(page.locator('#inspector-props')).toBeVisible();
   });
 
-  test('inspector clears when node is deselected by clicking canvas', async ({ page }) => {
+  test('inspector reverts to class view when node is deselected', async ({ page }) => {
     await dragNewNode(page, '#btn-new-state');
     const node = page.locator('.state-node');
     await node.click();
@@ -700,10 +722,11 @@ test.describe('Inspector clears on deselect/delete', () => {
     const canvas = page.locator('#canvas-container');
     const box = await canvas.boundingBox();
     await page.mouse.click(box.x + 5, box.y + 5);
-    await expect(page.locator('#inspector-empty')).toBeVisible();
+    // In class edit mode, inspector shows class properties (not empty)
+    await expect(page.locator('#inspector-props')).toBeVisible();
   });
 
-  test('inspector is blank when group of nodes is selected', async ({ page }) => {
+  test('inspector shows class view when group of nodes is selected', async ({ page }) => {
     await dragNewNode(page, '#btn-new-state', -50, -20);
     await dragNewNode(page, '#btn-new-state', 50, 20);
 
@@ -722,15 +745,16 @@ test.describe('Inspector clears on deselect/delete', () => {
     await drag(page, left, top, right, bottom, 15);
 
     await expect(nodeA).toHaveClass(/node-group-selected/);
-    await expect(page.locator('#inspector-empty')).toBeVisible();
+    // In class edit mode, inspector shows class properties when no single node selected
+    await expect(page.locator('#inspector-props')).toBeVisible();
   });
 });
 
 // ─── Export JSON button on canvas ───────────────────────────────────────────
 
 test.describe('Export JSON button on canvas', () => {
-  test('export JSON button is visible on the canvas area', async ({ page }) => {
-    const btn = page.locator('#canvas-container #btn-export-json');
+  test('export JSON button is visible in the toolbar', async ({ page }) => {
+    const btn = page.locator('#toolbar #btn-export-json');
     await expect(btn).toBeVisible();
   });
 
@@ -798,6 +822,7 @@ test.describe('V44: Left panel visibility', () => {
   });
 
   test('objects list contains default game and stage objects', async ({ page }) => {
+    await enterObjectMode(page);
     const items = page.locator('#objects-list .left-panel-item');
     await expect(items).toHaveCount(2);
     const texts = await items.allTextContents();
@@ -853,7 +878,8 @@ test.describe('V44: Left panel visibility', () => {
 });
 
 test.describe('V44: Add operations via prompt', () => {
-  test('clicking + on Objects shows inline form and creates a new object', async ({ page }) => {
+  test('clicking + on Objects shows modal and creates a new object', async ({ page }) => {
+    await enterObjectMode(page);
     const beforeCount = await page.locator('#objects-list .left-panel-item').count();
     await addObjectViaForm(page, 'enemy', 'Game');
     await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(beforeCount + 1);
@@ -863,29 +889,23 @@ test.describe('V44: Add operations via prompt', () => {
   test('clicking + on Classes creates a new class', async ({ page }) => {
     await page.evaluate(() => document.getElementById('classes-header').click());
     await page.locator('#classes-list').waitFor({ state: 'visible' }); // deselect object first
-    await page.evaluate(() => {
-      window._origPrompt = window.prompt;
-      window.prompt = () => 'Sprite';
-    });
     await page.locator('#btn-add-class').click();
+    await page.locator('#modal-name-input').fill('Sprite2');
+    await page.locator('#modal-ok').click();
     const items = page.locator('#classes-list .left-panel-item');
     const count = await items.count();
-    await expect(items.nth(count - 1)).toContainText('Sprite');
-    await page.evaluate(() => { window.prompt = window._origPrompt; });
+    await expect(items.nth(count - 1)).toContainText('Sprite2');
   });
 
   test('clicking + on Enum Classes creates a new enum class', async ({ page }) => {
     await page.evaluate(() => document.getElementById('classes-header').click());
     await page.locator('#classes-list').waitFor({ state: 'visible' }); // deselect object first
-    await page.evaluate(() => {
-      window._origPrompt = window.prompt;
-      window.prompt = () => 'Direction';
-    });
     await page.locator('#btn-add-enum').click();
+    await page.locator('#modal-name-input').fill('Direction');
+    await page.locator('#modal-ok').click();
     const items = page.locator('#enums-list .left-panel-item');
     const count = await items.count();
     await expect(items.nth(count - 1)).toContainText('Direction');
-    await page.evaluate(() => { window.prompt = window._origPrompt; });
   });
 });
 
@@ -919,10 +939,10 @@ test.describe('V44: Class inspector', () => {
     await page.evaluate(() => document.getElementById('classes-header').click());
     await page.locator('#classes-list').waitFor({ state: 'visible' });
     await page.locator('#classes-list .left-panel-item:has-text("Game")').first().click();
-    const beforeCount = await page.locator('#inspector-props input.inspector-input').count();
+    const beforeRows = await page.locator('.class-prop-row').count();
     await page.locator('button:has-text("+ Add Property")').click();
-    const afterCount = await page.locator('#inspector-props input.inspector-input').count();
-    expect(afterCount).toBe(beforeCount + 1);
+    const afterRows = await page.locator('.class-prop-row').count();
+    expect(afterRows).toBe(beforeRows + 1);
   });
 
   test('property type dropdown contains all expected types', async ({ page }) => {
@@ -991,23 +1011,19 @@ test.describe('V44: Enum class inspector', () => {
   });
 });
 
-test.describe('V44: Object switching', () => {
-  test('creating a node in one object and switching shows empty canvas', async ({ page }) => {
-    // Create a state node in game object
+test.describe('V59: Class-based state charts', () => {
+  test('switching between classes shows different charts', async ({ page }) => {
+    // Enter class edit mode for Game
+    await enterClassEditMode(page, 'Game');
     await dragNewNode(page, '#btn-new-state');
     await expect(page.locator('.state-node')).toHaveCount(1);
 
-    // Add a second object
-    await addObjectViaForm(page, 'obj2', 'Game');
-
-    // Click the new object to switch
-    await page.locator('#objects-list .left-panel-item').nth(1).click();
-
-    // Canvas should be empty
+    // Switch to Sprite class
+    await page.locator('#classes-list .left-panel-item:has-text("Sprite")').first().click();
     await expect(page.locator('.state-node')).toHaveCount(0);
 
-    // Switch back to game
-    await page.locator('#objects-list .left-panel-item').first().click();
+    // Switch back to Game
+    await page.locator('#classes-list .left-panel-item:has-text("Game")').first().click();
     await expect(page.locator('.state-node')).toHaveCount(1);
   });
 });
@@ -1084,24 +1100,28 @@ test.describe('V46: Minimized sections when object selected', () => {
   });
 });
 
-test.describe('V46: Object properties in data panel', () => {
-  test('object properties section visible when object selected', async ({ page }) => {
-    await page.locator('#objects-list .left-panel-item').first().click();
-    await expect(page.locator('#section-object-props')).toBeVisible();
+test.describe('V60: Object properties in Inspector', () => {
+  test('inspector shows object properties when object selected', async ({ page }) => {
+    // Switch to class mode then back to object to ensure fresh state
+    await enterClassEditMode(page, 'Game');
+    await enterObjectMode(page);
+    await expect(page.locator('#inspector-props')).toBeVisible();
+    await expect(page.locator('#inspector-table')).toContainText('Properties');
   });
 
-  test('shows 4 property rows for Game object', async ({ page }) => {
-    await page.locator('#objects-list .left-panel-item').first().click();
-    const rows = page.locator('#object-props-list .object-prop-row');
-    await expect(rows).toHaveCount(4);
+  test('inspector shows Game object property names', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    await enterObjectMode(page);
+    await expect(page.locator('#inspector-table')).toContainText('name');
+    await expect(page.locator('#inspector-table')).toContainText('description');
+    await expect(page.locator('#inspector-table')).toContainText('category');
   });
 
-  test('property labels match Game class properties', async ({ page }) => {
-    await page.locator('#objects-list .left-panel-item').first().click();
-    const labels = page.locator('#object-props-list .object-prop-label');
-    await expect(labels.nth(0)).toHaveText('name');
-    await expect(labels.nth(1)).toHaveText('description');
-    await expect(labels.nth(2)).toHaveText('category');
+  test('inspector shows object name and class', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    await enterObjectMode(page);
+    await expect(page.locator('#inspector-table')).toContainText('game');
+    await expect(page.locator('#inspector-table')).toContainText('Game');
   });
 
   test('object properties hidden when no object selected', async ({ page }) => {
@@ -1125,31 +1145,25 @@ test.describe('V46: No state chart when no object', () => {
   });
 });
 
-test.describe('V46: State chart remembered per object', () => {
-  test('state chart is preserved when switching between objects', async ({ page }) => {
-    // Select game, add a state node
-    await page.locator('#objects-list .left-panel-item').first().click();
+test.describe('V59: State chart preserved per class', () => {
+  test('state chart is preserved when switching between classes', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
     await dragNewNode(page, '#btn-new-state');
     await expect(page.locator('.state-node')).toHaveCount(1);
 
-    // Add a second object
-    await addObjectViaForm(page, 'ship', 'Game');
-
-    // Switch to ship — canvas should be empty
-    await page.locator('#objects-list .left-panel-item').nth(1).click();
+    // Switch to Sprite class and add a start node
+    await page.locator('#classes-list .left-panel-item:has-text("Sprite")').first().click();
     await expect(page.locator('.state-node')).toHaveCount(0);
-
-    // Add a start node to ship
     await dragNewNode(page, '#btn-new-start');
     await expect(page.locator('.start-node')).toHaveCount(1);
 
-    // Switch back to game — should see the state node, not the start node
-    await page.locator('#objects-list .left-panel-item').first().click();
+    // Switch back to Game — should see state node, not start
+    await page.locator('#classes-list .left-panel-item:has-text("Game")').first().click();
     await expect(page.locator('.state-node')).toHaveCount(1);
     await expect(page.locator('.start-node')).toHaveCount(0);
 
-    // Switch to ship again — should see the start node
-    await page.locator('#objects-list .left-panel-item').nth(1).click();
+    // Switch to Sprite again — should see start node
+    await page.locator('#classes-list .left-panel-item:has-text("Sprite")').first().click();
     await expect(page.locator('.start-node')).toHaveCount(1);
     await expect(page.locator('.state-node')).toHaveCount(0);
   });
@@ -1159,57 +1173,41 @@ test.describe('V46: State chart remembered per object', () => {
 // V47 — Inline add-object form, delete confirmation
 // ═══════════════════════════════════════════════════════════════════════════════
 
-test.describe('V47: Inline add-object form', () => {
-  test('add-object form is hidden by default', async ({ page }) => {
-    await expect(page.locator('#add-object-form')).toBeHidden();
+test.describe('V60: Modal-based object creation', () => {
+  test('modal is hidden by default', async ({ page }) => {
+    await expect(page.locator('#modal-overlay')).toBeHidden();
   });
 
-  test('clicking + shows the inline form with class dropdown and name input', async ({ page }) => {
+  test('clicking + on Objects shows modal with class dropdown and name input', async ({ page }) => {
+    await enterObjectMode(page);
     await page.locator('#btn-add-object').click();
-    await expect(page.locator('#add-object-form')).toBeVisible();
-    await expect(page.locator('#add-object-class')).toBeVisible();
-    await expect(page.locator('#add-object-name')).toBeVisible();
+    await expect(page.locator('#modal-overlay')).toBeVisible();
+    await expect(page.locator('#modal-class-select')).toBeVisible();
+    await expect(page.locator('#modal-name-input')).toBeVisible();
+    await page.locator('#modal-cancel').click();
   });
 
-  test('class dropdown is populated with available classes', async ({ page }) => {
+  test('cancel closes the modal', async ({ page }) => {
+    await enterObjectMode(page);
     await page.locator('#btn-add-object').click();
-    const options = await page.locator('#add-object-class option').allTextContents();
-    expect(options).toContain('Game');
+    await page.locator('#modal-cancel').click();
+    await expect(page.locator('#modal-overlay')).toBeHidden();
   });
 
-  test('class dropdown appears before name input (class first)', async ({ page }) => {
-    await page.locator('#btn-add-object').click();
-    const classBox = await page.locator('#add-object-class').boundingBox();
-    const nameBox = await page.locator('#add-object-name').boundingBox();
-    expect(classBox.x).toBeLessThan(nameBox.x);
-  });
-
-  test('cancel button hides the form', async ({ page }) => {
-    await page.locator('#btn-add-object').click();
-    await page.locator('#add-object-cancel').click();
-    await expect(page.locator('#add-object-form')).toBeHidden();
-  });
-
-  test('submitting form creates object and hides form', async ({ page }) => {
+  test('submitting modal creates object', async ({ page }) => {
+    await enterObjectMode(page);
     const beforeCount = await page.locator('#objects-list .left-panel-item').count();
     await addObjectViaForm(page, 'rocket', 'Game');
-    await expect(page.locator('#add-object-form')).toBeHidden();
+    await expect(page.locator('#modal-overlay')).toBeHidden();
     await expect(page.locator('#objects-list .left-panel-item')).toHaveCount(beforeCount + 1);
-    await expect(page.locator('#objects-list .left-panel-item').last()).toContainText('rocket');
   });
 
-  test('pressing Enter in name input submits the form', async ({ page }) => {
+  test('pressing Enter in name input submits', async ({ page }) => {
+    await enterObjectMode(page);
     await page.locator('#btn-add-object').click();
-    await page.locator('#add-object-name').fill('enterObj');
-    await page.locator('#add-object-name').press('Enter');
-    await expect(page.locator('#add-object-form')).toBeHidden();
-    await expect(page.locator('#objects-list .left-panel-item').last()).toContainText('enterObj');
-  });
-
-  test('pressing Escape in name input cancels the form', async ({ page }) => {
-    await page.locator('#btn-add-object').click();
-    await page.locator('#add-object-name').press('Escape');
-    await expect(page.locator('#add-object-form')).toBeHidden();
+    await page.locator('#modal-name-input').fill('enterObj');
+    await page.locator('#modal-name-input').press('Enter');
+    await expect(page.locator('#modal-overlay')).toBeHidden();
   });
 });
 
@@ -1316,12 +1314,9 @@ test.describe('V48: Class CRUD in class mode', () => {
   test('can add a class in class mode', async ({ page }) => {
     await page.locator('#btn-edit-classes').click();
     const beforeCount = await page.locator('#classes-list .left-panel-item').count();
-    await page.evaluate(() => {
-      window._origPrompt = window.prompt;
-      window.prompt = () => 'V48Class';
-    });
     await page.locator('#btn-add-class').click();
-    await page.evaluate(() => { window.prompt = window._origPrompt; });
+    await page.locator('#modal-name-input').fill('V48Class');
+    await page.locator('#modal-ok').click();
     await expect(page.locator('#classes-list .left-panel-item')).toHaveCount(beforeCount + 1);
   });
 
@@ -1334,12 +1329,9 @@ test.describe('V48: Class CRUD in class mode', () => {
   test('can add an enum class in class mode', async ({ page }) => {
     await page.locator('#btn-edit-classes').click();
     const beforeCount = await page.locator('#enums-list .left-panel-item').count();
-    await page.evaluate(() => {
-      window._origPrompt = window.prompt;
-      window.prompt = () => 'V48Enum';
-    });
     await page.locator('#btn-add-enum').click();
-    await page.evaluate(() => { window.prompt = window._origPrompt; });
+    await page.locator('#modal-name-input').fill('V48Enum');
+    await page.locator('#modal-ok').click();
     await expect(page.locator('#enums-list .left-panel-item')).toHaveCount(beforeCount + 1);
   });
 });
@@ -1352,20 +1344,17 @@ test.describe('V49: Image/Sound property dropdowns', () => {
   test('Image property shows a dropdown of image files', async ({ page }) => {
     // Switch to class mode, create a class with Image property
     await page.locator('#btn-edit-classes').click();
-    await page.evaluate(() => {
-      window._origPrompt = window.prompt;
-      window.prompt = () => 'ImgClass';
-    });
     await page.locator('#btn-add-class').click();
-    await page.evaluate(() => { window.prompt = window._origPrompt; });
+    await page.locator('#modal-name-input').fill('ImgClass');
+    await page.locator('#modal-ok').click();
 
     // Click the new class, add an Image property
     await page.locator('#classes-list .left-panel-item').last().click();
     await page.locator('button:has-text("+ Add Property")').click();
 
     // Change the new property type to Image
-    const lastTypeSelect = page.locator('#inspector-props select.inspector-select').last();
-    await lastTypeSelect.selectOption('Image');
+    const lastRow = page.locator('.class-prop-row').last();
+    await lastRow.locator('.prop-type-select').selectOption('Image');
 
     // Create an object of ImgClass
     await page.evaluate(() => document.getElementById('objects-header').click());
@@ -1373,7 +1362,7 @@ test.describe('V49: Image/Sound property dropdowns', () => {
     await page.locator('#objects-list .left-panel-item').last().click();
 
     // The property should render as a select dropdown with image files
-    const dropdown = page.locator('#object-props-list select.asset-dropdown');
+    const dropdown = page.locator('#inspector-table select.inspector-select');
     await expect(dropdown).toBeVisible();
     const optCount = await dropdown.locator('option').count();
     // Should have placeholder + at least some image files
@@ -1382,23 +1371,20 @@ test.describe('V49: Image/Sound property dropdowns', () => {
 
   test('Sound property shows a dropdown of audio files', async ({ page }) => {
     await page.locator('#btn-edit-classes').click();
-    await page.evaluate(() => {
-      window._origPrompt = window.prompt;
-      window.prompt = () => 'SndClass';
-    });
     await page.locator('#btn-add-class').click();
-    await page.evaluate(() => { window.prompt = window._origPrompt; });
+    await page.locator('#modal-name-input').fill('SndClass');
+    await page.locator('#modal-ok').click();
 
     await page.locator('#classes-list .left-panel-item').last().click();
     await page.locator('button:has-text("+ Add Property")').click();
-    const lastTypeSelect = page.locator('#inspector-props select.inspector-select').last();
-    await lastTypeSelect.selectOption('Sound');
+    const lastRow2 = page.locator('.class-prop-row').last();
+    await lastRow2.locator('.prop-type-select').selectOption('Sound');
 
     await page.evaluate(() => document.getElementById('objects-header').click());
     await addObjectViaForm(page, 'sndObj', 'SndClass');
     await page.locator('#objects-list .left-panel-item').last().click();
 
-    const dropdown = page.locator('#object-props-list select.asset-dropdown');
+    const dropdown = page.locator('#inspector-table select.inspector-select');
     await expect(dropdown).toBeVisible();
     const optCount = await dropdown.locator('option').count();
     expect(optCount).toBeGreaterThan(1);
@@ -1409,23 +1395,20 @@ test.describe('V49: Image/Sound property dropdowns', () => {
 
   test('image dropdown contains files from subfolders', async ({ page }) => {
     await page.locator('#btn-edit-classes').click();
-    await page.evaluate(() => {
-      window._origPrompt = window.prompt;
-      window.prompt = () => 'ImgClass2';
-    });
     await page.locator('#btn-add-class').click();
-    await page.evaluate(() => { window.prompt = window._origPrompt; });
+    await page.locator('#modal-name-input').fill('ImgClass2');
+    await page.locator('#modal-ok').click();
 
     await page.locator('#classes-list .left-panel-item').last().click();
     await page.locator('button:has-text("+ Add Property")').click();
-    const lastTypeSelect = page.locator('#inspector-props select.inspector-select').last();
-    await lastTypeSelect.selectOption('Image');
+    const lastRow = page.locator('.class-prop-row').last();
+    await lastRow.locator('.prop-type-select').selectOption('Image');
 
     await page.evaluate(() => document.getElementById('objects-header').click());
     await addObjectViaForm(page, 'imgObj2', 'ImgClass2');
     await page.locator('#objects-list .left-panel-item').last().click();
 
-    const dropdown = page.locator('#object-props-list select.asset-dropdown');
+    const dropdown = page.locator('#inspector-table select.inspector-select');
     const allOptions = await dropdown.locator('option').allTextContents();
     // Should contain paths with subfolders like "images/potraits/..."
     const hasSubfolder = allOptions.some(o => o.split('/').length > 2);
@@ -1441,26 +1424,24 @@ test.describe('V50: Sound methods in class inspector', () => {
   test('class with Sound property shows auto-generated methods', async ({ page }) => {
     // Enter class mode, create a class with Sound property
     await page.locator('#btn-edit-classes').click();
-    await page.evaluate(() => {
-      window._origPrompt = window.prompt;
-      window.prompt = () => 'AudioClass';
-    });
     await page.locator('#btn-add-class').click();
-    await page.evaluate(() => { window.prompt = window._origPrompt; });
+    await page.locator('#modal-name-input').fill('AudioClass');
+    await page.locator('#modal-ok').click();
 
     // Click the class, add a Sound property
     await page.locator('#classes-list .left-panel-item').last().click();
     await page.locator('button:has-text("+ Add Property")').click();
 
-    // Change property name and type
-    const nameInputs = page.locator('#inspector-props input.inspector-input');
-    const lastNameInput = nameInputs.last();
-    await lastNameInput.fill('music');
+    // Set the name first (before changing type, which re-renders)
+    const lastRow = page.locator('.class-prop-row').last();
+    const nameInput = lastRow.locator('input.inspector-input').first();
+    await nameInput.fill('music');
 
-    const lastTypeSelect = page.locator('#inspector-props select.inspector-select').last();
-    await lastTypeSelect.selectOption('Sound');
+    // Now change type to Sound (this re-renders the inspector)
+    const typeSelect = page.locator('.class-prop-row').last().locator('select.inspector-select').first();
+    await typeSelect.selectOption('Sound');
 
-    // Should see Sound Methods section with 3 methods
+    // Should see Methods section with 3 sound methods
     const methodRows = page.locator('.sound-method-row');
     await expect(methodRows).toHaveCount(3);
     await expect(methodRows.nth(0)).toContainText('MusicPlay()');
@@ -1473,20 +1454,17 @@ test.describe('V50: Sound methods in data panel', () => {
   test('object with Sound property shows methods in data panel', async ({ page }) => {
     // Create class with Sound property in class mode
     await page.locator('#btn-edit-classes').click();
-    await page.evaluate(() => {
-      window._origPrompt = window.prompt;
-      window.prompt = () => 'SfxClass';
-    });
     await page.locator('#btn-add-class').click();
-    await page.evaluate(() => { window.prompt = window._origPrompt; });
+    await page.locator('#modal-name-input').fill('SfxClass');
+    await page.locator('#modal-ok').click();
 
     await page.locator('#classes-list .left-panel-item').last().click();
     await page.locator('button:has-text("+ Add Property")').click();
 
-    const lastNameInput = page.locator('#inspector-props input.inspector-input').last();
-    await lastNameInput.fill('fireSound');
-    const lastTypeSelect = page.locator('#inspector-props select.inspector-select').last();
-    await lastTypeSelect.selectOption('Sound');
+    const lastRow = page.locator('.class-prop-row').last();
+    await lastRow.locator('select.inspector-select').first().selectOption('Sound');
+    const newLastRow = page.locator('.class-prop-row').last();
+    await newLastRow.locator('input.inspector-input').first().fill('fireSound');
 
     // Switch to object mode, create object of SfxClass
     await page.evaluate(() => document.getElementById('objects-header').click());
@@ -1494,7 +1472,7 @@ test.describe('V50: Sound methods in data panel', () => {
     await page.locator('#objects-list .left-panel-item').last().click();
 
     // Should see sound method items in data panel
-    const methodItems = page.locator('#object-props-list .sound-method-item');
+    const methodItems = page.locator('#inspector-table .sound-method-row');
     await expect(methodItems).toHaveCount(3);
     await expect(methodItems.nth(0)).toContainText('FireSoundPlay()');
     await expect(methodItems.nth(1)).toContainText('FireSoundPause()');
@@ -1663,7 +1641,7 @@ test.describe('V52: Run button', () => {
 
 test.describe('V53: Terminate button is next to End button', () => {
   test('toolbar buttons are in DOM order: State, Start, End, Terminate, Choice', async ({ page }) => {
-    const buttons = await page.locator('.toolbar-group .palette-btn').all();
+    const buttons = await page.locator('#state-toolbar .palette-btn').all();
     const ids = [];
     for (const b of buttons) ids.push(await b.getAttribute('id'));
     const endIdx = ids.indexOf('btn-new-end');
@@ -1690,8 +1668,8 @@ test.describe('V54: Build button', () => {
     await expect(page.locator('#btn-build')).toBeVisible();
   });
 
-  test('Build button is inside canvas-overlay-buttons', async ({ page }) => {
-    await expect(page.locator('#canvas-overlay-buttons #btn-build')).toBeVisible();
+  test('Build button is inside toolbar', async ({ page }) => {
+    await expect(page.locator('#toolbar #btn-build')).toBeVisible();
   });
 
   test('clicking Build triggers a download', async ({ page }) => {

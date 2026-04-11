@@ -16,6 +16,114 @@ html, body {
   user-select: none;
 }
 
+/* ── State toolbar (top-left of canvas) ─────────────────────────────────────── */
+#state-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  height: 36px;
+  background: var(--bg-toolbar);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 4px;
+  z-index: 200;
+  box-shadow: 0 4px 16px var(--shadow-color);
+  user-select: none;
+}
+
+#state-toolbar .toolbar-btn {
+  padding: 4px 6px;
+}
+
+#state-toolbar.disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* ── Read-only chart mode (viewing object's inherited class chart) ─────────── */
+.chart-readonly .palette-btn {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* ── Modal dialog ──────────────────────────────────────────────────────────── */
+#modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#modal-dialog {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  width: 360px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px var(--shadow-color);
+}
+
+#modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+#modal-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#modal-body label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+#modal-body input,
+#modal-body select {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+#modal-body input:focus,
+#modal-body select:focus {
+  border-color: #60a5fa;
+}
+
+#modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+#modal-body .modal-error {
+  color: #ef4444;
+  font-size: 11px;
+}
+
 /* ── Run button ────────────────────────────────────────────────────────────── */
 .run-btn {
   color: #22c55e;
@@ -151,33 +259,6 @@ html, body {
 }
 
 /* ── Canvas container (positioned by #main-area flex in inspector.css) ─────── */
-
-#canvas-overlay-buttons {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 150;
-  display: flex;
-  gap: 4px;
-}
-
-.canvas-overlay-btn {
-  background: #1f2937;
-  border: 1px solid #374151;
-  border-radius: 5px;
-  padding: 5px 10px;
-  color: #9ca3af;
-  font-size: 11px;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
-}
-
-.canvas-overlay-btn:hover {
-  background: #374151;
-  border-color: #4b5563;
-  color: #f3f4f6;
-}
 
 /* ── Canvas world ──────────────────────────────────────────────────────────── */
 #canvas {

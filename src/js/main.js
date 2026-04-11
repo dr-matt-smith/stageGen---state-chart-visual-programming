@@ -20,7 +20,7 @@ import { S as _S2, initDefaults } from './state.js';
 import { renderLeftPanel, selectObject, deselectObject, enterClassMode, enterObjectMode,
          addObject, addClass, addEnumClass,
          deleteObject, deleteClass, deleteEnumClass, selectClassInPanel, selectEnumInPanel,
-         saveActiveObjectChart, setWireNodeEvents } from './left-panel.js';
+         saveActiveObjectChart, saveActiveClassChart, setWireNodeEvents } from './left-panel.js';
 import { startRuntime, stopRuntime, isRunning, setRuntimeCallbacks, getRuntimeContexts } from './runtime.js';
 
 // ── Toolbar: Fit All ─────────────────────────────────────────────────────────
@@ -57,10 +57,16 @@ btnHandTool.addEventListener('click', () => {
 
 // ── Toolbar: palette buttons (drag-to-create) ───────────────────────────────
 
+/** True only when editing a class's state chart (not viewing via object). */
+function canEditChart() {
+  return S.editingClassChart === true;
+}
+
 function setupPaletteBtn(btnId, type) {
   const btn = document.getElementById(btnId);
   btn.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
+    if (!canEditChart()) return;
     e.preventDefault();
     S.creatingNode     = true;
     S.creatingNodeType = type;
@@ -149,7 +155,10 @@ function onNodeMouseDown(e) {
   if (S.activeTool === 'hand') return;
   if (S.creatingNode) return;
   if (S.drawingConn) return;
-  if (e.target.classList.contains('resize-handle')) return;
+  if (e.target.classList.contains('resize-handle')) {
+    if (!canEditChart()) return; // block resize in read-only
+    // resize handled below
+  }
 
   e.preventDefault();
   e.stopPropagation();
@@ -163,6 +172,13 @@ function onNodeMouseDown(e) {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
   const world = clientToWorld(e.clientX, e.clientY);
+
+  // In read-only mode, allow selection but not dragging
+  if (!canEditChart()) {
+    if (S.selectedNodes.length > 0) clearGroup();
+    activateNode(node);
+    return;
+  }
 
   if (S.selectedNodes.length > 0 && S.selectedNodes.includes(node)) {
     S.draggingGroup = {
@@ -185,6 +201,7 @@ function onNodeMouseDown(e) {
 // ── Node: double-click (edit label) ─────────────────────────────────────────
 
 function onNodeDblClick(e) {
+  if (!canEditChart()) return;
   const id   = Number(e.currentTarget.dataset.id);
   const node = S.nodes.find(n => n.id === id);
   if (!node) return;
@@ -254,6 +271,7 @@ function duplicateNode(srcNode) {
 function onNodeContextMenu(e) {
   e.preventDefault();
   e.stopPropagation();
+  if (!canEditChart()) return;
   const id   = Number(e.currentTarget.dataset.id);
   const node = S.nodes.find(n => n.id === id);
   if (!node) return;
@@ -535,6 +553,8 @@ setOnJsonLoaded((data) => {
   S.selectedConn = null;
   S.selectedNodes = [];
   S.activeObjectId = null;
+  S.activeClassId = null;
+  S.editingClassChart = false;
   S.selectedLeftPanelItem = null;
   S.objects = [];
   S.classes = [];
@@ -555,16 +575,28 @@ setOnJsonLoaded((data) => {
   if (data.classes) {
     for (const c of data.classes) {
       c.id = S.nextClassId++;
+      c.nodes = c.nodes || [];
+      c.connections = c.connections || [];
+      c.nextId = Math.max(1, ...c.nodes.map(n => n.id + 1), 1);
+      c.nextConnId = Math.max(1, ...c.connections.map(cn => cn.id + 1), 1);
       S.classes.push(c);
     }
   }
   if (data.objects) {
     for (const o of data.objects) {
       o.id = S.nextObjId++;
-      o.nodes = o.nodes || [];
-      o.connections = o.connections || [];
-      o.nextId = Math.max(1, ...o.nodes.map(n => n.id + 1), 1);
-      o.nextConnId = Math.max(1, ...o.connections.map(c => c.id + 1), 1);
+      // V59: migrate legacy object-based state charts to class
+      if (o.nodes && o.nodes.length > 0) {
+        const cls = S.classes.find(c => c.id === o.classId);
+        if (cls && (!cls.nodes || cls.nodes.length === 0)) {
+          cls.nodes = o.nodes;
+          cls.connections = o.connections || [];
+          cls.nextId = Math.max(1, ...cls.nodes.map(n => n.id + 1), 1);
+          cls.nextConnId = Math.max(1, ...cls.connections.map(cn => cn.id + 1), 1);
+        }
+        delete o.nodes;
+        delete o.connections;
+      }
       S.objects.push(o);
     }
   }
@@ -612,8 +644,8 @@ btnRun.addEventListener('click', () => {
     stopRuntime();
     return;
   }
-  // Save active object chart before running
-  saveActiveObjectChart();
+  // Save active class chart before running
+  saveActiveClassChart();
   const result = startRuntime();
   if (!result.ok) {
     alert('Cannot run:\n' + result.errors.join('\n'));
@@ -767,59 +799,86 @@ initDefaults();
 setRenderLeftPanel(renderLeftPanel);
 renderLeftPanel();
 
-// ── Add-object inline form ──────────────────────────────────────────────────
+// ── Modal-based creation dialogs ────────────────────────────────────────────
 
-const addObjForm     = document.getElementById('add-object-form');
-const addObjClass    = document.getElementById('add-object-class');
-const addObjName     = document.getElementById('add-object-name');
-const addObjOk       = document.getElementById('add-object-ok');
-const addObjCancel   = document.getElementById('add-object-cancel');
+const modalOverlay = document.getElementById('modal-overlay');
+const modalTitle   = document.getElementById('modal-title');
+const modalBody    = document.getElementById('modal-body');
+const modalOk      = document.getElementById('modal-ok');
+const modalCancel  = document.getElementById('modal-cancel');
+const modalClose   = document.getElementById('modal-close');
 
-function showAddObjectForm() {
-  addObjClass.innerHTML = '';
-  for (const cls of S.classes) {
-    const opt = document.createElement('option');
-    opt.value = cls.id;
-    opt.textContent = cls.name;
-    addObjClass.appendChild(opt);
+let _modalCommit = null;
+
+function showModal(title, bodyHtml, commitFn) {
+  modalTitle.textContent = title;
+  modalBody.innerHTML = bodyHtml;
+  _modalCommit = commitFn;
+  modalOverlay.style.display = '';
+  const firstInput = modalBody.querySelector('input');
+  if (firstInput) firstInput.focus();
+  // Wire keydown on inputs
+  for (const inp of modalBody.querySelectorAll('input')) {
+    inp.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') modalOk.click();
+      if (e.key === 'Escape') hideModal();
+    });
   }
-  addObjName.value = '';
-  addObjForm.style.display = '';
-  addObjName.focus();
 }
 
-function hideAddObjectForm() {
-  addObjForm.style.display = 'none';
+function hideModal() {
+  modalOverlay.style.display = 'none';
+  _modalCommit = null;
 }
 
-function commitAddObject() {
-  const name = addObjName.value.trim();
-  if (!name) return;
-  const classId = Number(addObjClass.value);
-  addObject(name, classId);
-  hideAddObjectForm();
-}
+modalOk.addEventListener('click', () => { if (_modalCommit) _modalCommit(); });
+modalCancel.addEventListener('click', hideModal);
+modalClose.addEventListener('click', hideModal);
 
-document.getElementById('btn-add-object').addEventListener('click', showAddObjectForm);
-addObjOk.addEventListener('click', commitAddObject);
-addObjCancel.addEventListener('click', hideAddObjectForm);
-addObjName.addEventListener('keydown', (e) => {
-  e.stopPropagation();
-  if (e.key === 'Enter') commitAddObject();
-  if (e.key === 'Escape') hideAddObjectForm();
+// ── New Object dialog ──
+document.getElementById('btn-add-object').addEventListener('click', () => {
+  let classOptions = S.classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  showModal('New Object',
+    `<label>Class</label><select id="modal-class-select">${classOptions}</select>
+     <label>Object name</label><input id="modal-name-input" type="text" placeholder="objectName">
+     <div class="modal-error" id="modal-err" style="display:none;"></div>`,
+    () => {
+      const name = document.getElementById('modal-name-input').value.trim();
+      const errEl = document.getElementById('modal-err');
+      if (!name || !/^[a-z_]\w*$/i.test(name)) {
+        errEl.textContent = 'Name must start with a-z or _, no spaces';
+        errEl.style.display = '';
+        return;
+      }
+      const classId = Number(document.getElementById('modal-class-select').value);
+      addObject(name, classId);
+      hideModal();
+    });
 });
-addObjClass.addEventListener('keydown', (e) => e.stopPropagation());
 
+// ── New Class dialog ──
 document.getElementById('btn-add-class').addEventListener('click', () => {
-  const name = prompt('Class name:');
-  if (!name || !name.trim()) return;
-  addClass(name.trim());
+  showModal('New Class',
+    `<label>Class name</label><input id="modal-name-input" type="text" placeholder="ClassName">`,
+    () => {
+      const name = document.getElementById('modal-name-input').value.trim();
+      if (!name) return;
+      addClass(name);
+      hideModal();
+    });
 });
 
+// ── New Enum Class dialog ──
 document.getElementById('btn-add-enum').addEventListener('click', () => {
-  const name = prompt('Enum class name:');
-  if (!name || !name.trim()) return;
-  addEnumClass(name.trim());
+  showModal('New Enum Class',
+    `<label>Enum class name</label><input id="modal-name-input" type="text" placeholder="EnumName">`,
+    () => {
+      const name = document.getElementById('modal-name-input').value.trim();
+      if (!name) return;
+      addEnumClass(name);
+      hideModal();
+    });
 });
 
 // "Edit Classes & Enums" button — switch to class/enum editing mode
@@ -876,6 +935,9 @@ document.addEventListener('mouseup', () => {
 
 applyTransform();
 
+// Expose S for e2e test helpers
+if (typeof window !== 'undefined') window.__stateGenApp = { S };
+
 // ── Re-exports (facade for tests) ───────────────────────────────────────────
 
 export { S } from './state.js';
@@ -897,7 +959,7 @@ export { initDefaults } from './state.js';
 export { renderLeftPanel, selectObject, deselectObject, enterClassMode, enterObjectMode,
          addObject, addClass, addEnumClass,
          deleteObject, deleteClass, deleteEnumClass,
-         selectClassInPanel, selectEnumInPanel, saveActiveObjectChart,
+         selectClassInPanel, selectEnumInPanel, saveActiveObjectChart, saveActiveClassChart,
          duplicateObject } from './left-panel.js';
 export { startRuntime, stopRuntime, isRunning, getRuntimeContexts } from './runtime.js';
 export { buildAndDownload } from './build-export.js';

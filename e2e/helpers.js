@@ -8,6 +8,15 @@
  * Returns the locator for the newly created node.
  */
 export async function dragNewNode(page, btnId, offsetX = 0, offsetY = 0) {
+  // V59: ensure we're in class edit mode so palette buttons are enabled
+  const isEditing = await page.evaluate(() => window.__stateGenApp?.S?.editingClassChart);
+  if (!isEditing) {
+    await page.evaluate(() => document.getElementById('btn-edit-classes')?.click());
+    await page.locator('#classes-list').waitFor({ state: 'visible' });
+    // Click Game class by default
+    const gameItem = page.locator('#classes-list .left-panel-item:has-text("Game")');
+    if (await gameItem.count() > 0) await gameItem.first().click();
+  }
   const btn = page.locator(btnId);
   const canvas = page.locator('#canvas-container');
   const canvasBox = await canvas.boundingBox();

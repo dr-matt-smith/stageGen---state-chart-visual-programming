@@ -5,12 +5,12 @@
 export function setupDOM() {
   document.body.innerHTML = `
     <div id="toolbar">
-      <button id="btn-new-state" class="toolbar-btn palette-btn" draggable="false">State</button>
-      <button id="btn-new-start" class="toolbar-btn palette-btn" draggable="false"></button>
-      <button id="btn-new-end" class="toolbar-btn palette-btn" draggable="false"></button>
-      <button id="btn-new-terminate" class="toolbar-btn palette-btn" draggable="false"></button>
-      <button id="btn-new-choice" class="toolbar-btn palette-btn" draggable="false"></button>
       <button id="btn-run" class="toolbar-btn run-btn"><svg width="14" height="14" viewBox="0 0 14 14"><polygon points="2,1 12,7 2,13" fill="currentColor"/></svg> Run</button>
+      <button id="btn-export-json" class="toolbar-btn">Export JSON</button>
+      <button id="btn-load-json" class="toolbar-btn">Load JSON</button>
+      <button id="btn-load-example" class="toolbar-btn">Load Example</button>
+      <button id="btn-build" class="toolbar-btn">Build</button>
+      <button id="btn-theme-toggle" class="toolbar-btn">&#9788; Light</button>
     </div>
     <div id="main-area">
       <div id="left-panel">
@@ -18,12 +18,6 @@ export function setupDOM() {
         <div id="section-objects" class="left-panel-section">
           <div class="left-panel-header" id="objects-header"><span>Objects</span><button id="btn-add-object" class="left-panel-add-btn">+</button></div>
           <div id="objects-list" class="left-panel-list"></div>
-          <div id="add-object-form" class="add-object-form" style="display:none;">
-            <select id="add-object-class" title="Class"></select>
-            <input id="add-object-name" type="text" placeholder="object name" title="Object name">
-            <button id="add-object-ok" class="left-panel-add-btn" title="Create">&#10003;</button>
-            <button id="add-object-cancel" class="left-panel-add-btn" title="Cancel">&#10005;</button>
-          </div>
         </div>
         <div id="section-object-props" class="left-panel-section" style="display:none;">
           <div class="left-panel-header"><span id="object-props-title">Properties</span></div>
@@ -44,8 +38,15 @@ export function setupDOM() {
         <div id="canvas" style="width:4000px;height:3000px;">
           <svg id="connections-svg" xmlns="http://www.w3.org/2000/svg"></svg>
         </div>
-        <div id="canvas-no-object" style="display:none;">Select an object to view its state chart</div>
+        <div id="canvas-no-object" style="display:none;">Select an object or class to view its state chart</div>
         <div id="runtime-stage" style="display:none;"></div>
+        <div id="state-toolbar">
+          <button id="btn-new-state" class="toolbar-btn palette-btn" draggable="false">State</button>
+          <button id="btn-new-start" class="toolbar-btn palette-btn" draggable="false"></button>
+          <button id="btn-new-end" class="toolbar-btn palette-btn" draggable="false"></button>
+          <button id="btn-new-terminate" class="toolbar-btn palette-btn" draggable="false"></button>
+          <button id="btn-new-choice" class="toolbar-btn palette-btn" draggable="false"></button>
+        </div>
         <div id="zoom-toolbar">
           <button id="btn-fit-all" class="toolbar-btn"></button>
           <button id="btn-zoom-out" class="toolbar-btn"></button>
@@ -53,13 +54,6 @@ export function setupDOM() {
           <button id="btn-zoom-in" class="toolbar-btn"></button>
           <span id="zoom-label" class="zoom-label">100%</span>
           <button id="btn-hand-tool" class="toolbar-btn tool-btn"></button>
-          <button id="btn-theme-toggle" class="toolbar-btn">&#9788; Light</button>
-        </div>
-        <div id="canvas-overlay-buttons">
-          <button id="btn-export-json" class="toolbar-btn">Export JSON</button>
-          <button id="btn-load-json" class="toolbar-btn">Load JSON</button>
-          <button id="btn-load-example" class="toolbar-btn">Load Example</button>
-          <button id="btn-build" class="toolbar-btn">Build</button>
         </div>
         <div id="minimap" style="width:200px;height:150px;">
           <div id="minimap-states"></div>
@@ -81,6 +75,16 @@ export function setupDOM() {
               <table id="inspector-table"><tbody></tbody></table>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+    <div id="modal-overlay" style="display:none;">
+      <div id="modal-dialog">
+        <div id="modal-header"><span id="modal-title">New Item</span><button id="modal-close" class="json-modal-btn">&times;</button></div>
+        <div id="modal-body"></div>
+        <div id="modal-footer">
+          <button id="modal-ok" class="toolbar-btn">Create</button>
+          <button id="modal-cancel" class="toolbar-btn">Cancel</button>
         </div>
       </div>
     </div>

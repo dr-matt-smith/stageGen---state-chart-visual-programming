@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vite:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx playwright:*)",
+      "Bash(curl -sL \"https://github.com/snozbot/fungus/wiki/blocks\")",
+      "Bash(curl -sL \"https://github.com/snozbot/fungus/wiki/Blocks\")",
+      "WebFetch(domain:github.com)",
+      "Bash(kill %1)",
+      "Bash(npm run:*)",
+      "Bash(node -e ':*)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(wc:*)",
+      "WebFetch(domain:medium.com)",
+      "Bash(npm install:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "celbridge"
+  ]
+}

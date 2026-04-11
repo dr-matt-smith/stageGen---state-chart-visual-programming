@@ -1,6 +1,7 @@
 import { S } from './state.js';
 import { PROPERTY_TYPES } from './config.js';
 import { fitLabelFontSize } from './nodes/node-element.js';
+import { imageFiles, audioFiles } from './asset-manifest.js';
 
 const inspectorEl    = document.getElementById('inspector');
 const emptyMsg       = document.getElementById('inspector-empty');
@@ -72,6 +73,10 @@ export function updateInspector() {
     const { kind, id } = S.selectedLeftPanelItem;
     if (kind === 'class') { renderClassInspector(id); return; }
     if (kind === 'enum')  { renderEnumInspector(id);  return; }
+  }
+  if (S.activeObjectId) {
+    renderObjectPropsInspector(S.activeObjectId);
+    return;
   }
   showEmpty();
 }
@@ -384,6 +389,104 @@ function renderConnInspector(c) {
   tbody.appendChild(addBehRow);
 }
 
+// ── Object properties inspector ─────────────────────────────────────────────
+
+function renderObjectPropsInspector(objId) {
+  const obj = S.objects.find(o => o.id === objId);
+  if (!obj) { showEmpty(); return; }
+  const cls = S.classes.find(c => c.id === obj.classId);
+
+  emptyMsg.style.display = 'none';
+  propsContainer.style.display = '';
+  tbody.innerHTML = '';
+
+  // Object name and class
+  setPropsRows([['Object', obj.name], ['Class', cls ? cls.name : '(none)']]);
+
+  if (!cls || cls.properties.length === 0) return;
+  if (!obj.propertyValues) obj.propertyValues = {};
+
+  const headerRow = document.createElement('tr');
+  headerRow.innerHTML = `<td colspan="2" style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.05em;padding-top:12px;">Properties</td>`;
+  tbody.appendChild(headerRow);
+
+  for (const prop of cls.properties) {
+    const tr = document.createElement('tr');
+    const labelTd = document.createElement('td');
+    labelTd.textContent = prop.name;
+    const valueTd = document.createElement('td');
+
+    if (prop.type === 'Boolean') {
+      const sel = document.createElement('select');
+      sel.className = 'inspector-select';
+      sel.innerHTML = '<option value="false">false</option><option value="true">true</option>';
+      sel.value = obj.propertyValues[prop.name] === 'true' ? 'true' : 'false';
+      sel.addEventListener('change', () => { obj.propertyValues[prop.name] = sel.value; });
+      sel.addEventListener('keydown', (e) => e.stopPropagation());
+      valueTd.appendChild(sel);
+    } else if (prop.type === 'EnumClass') {
+      const en = S.enumClasses.find(e => e.id === prop.enumClassId);
+      const sel = document.createElement('select');
+      sel.className = 'inspector-select';
+      if (en) for (const v of en.values) {
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = v;
+        if (obj.propertyValues[prop.name] === v) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      sel.addEventListener('change', () => { obj.propertyValues[prop.name] = sel.value; });
+      sel.addEventListener('keydown', (e) => e.stopPropagation());
+      valueTd.appendChild(sel);
+    } else if (prop.type === 'Image' || prop.type === 'Sound') {
+      const files = prop.type === 'Image' ? imageFiles : audioFiles;
+      const sel = document.createElement('select');
+      sel.className = 'inspector-select';
+      sel.innerHTML = `<option value="">-- select ${prop.type.toLowerCase()} --</option>`;
+      for (const f of files) {
+        const opt = document.createElement('option');
+        opt.value = f; opt.textContent = f;
+        if (obj.propertyValues[prop.name] === f) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      sel.addEventListener('change', () => { obj.propertyValues[prop.name] = sel.value; });
+      sel.addEventListener('keydown', (e) => e.stopPropagation());
+      valueTd.appendChild(sel);
+    } else {
+      const input = document.createElement('input');
+      input.type = (prop.type === 'Integer' || prop.type === 'Real') ? 'number' : 'text';
+      input.className = 'inspector-input';
+      input.value = obj.propertyValues[prop.name] || '';
+      input.placeholder = prop.type;
+      input.addEventListener('input', () => { obj.propertyValues[prop.name] = input.value; });
+      input.addEventListener('keydown', (e) => e.stopPropagation());
+      valueTd.appendChild(input);
+    }
+
+    tr.appendChild(labelTd);
+    tr.appendChild(valueTd);
+    tbody.appendChild(tr);
+  }
+
+  // Show methods (explicit + sound)
+  const explicit = (cls.methods || []).map(m => ({ signature: m.signature, description: m.description || '' }));
+  const sound = getSoundMethods(cls);
+  const allMethods = [...explicit, ...sound];
+  if (allMethods.length > 0) {
+    const mHeader = document.createElement('tr');
+    mHeader.innerHTML = `<td colspan="2" style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.05em;padding-top:12px;">Methods</td>`;
+    tbody.appendChild(mHeader);
+    for (const m of allMethods) {
+      const mtr = document.createElement('tr');
+      mtr.className = 'sound-method-row';
+      const mtd = document.createElement('td');
+      mtd.colSpan = 2;
+      mtd.innerHTML = `<code class="method-signature">${escapeHtml(m.signature)}</code>`;
+      mtr.appendChild(mtd);
+      tbody.appendChild(mtr);
+    }
+  }
+}
+
 // ── Class inspector ─────────────────────────────────────────────────────────
 
 function renderClassInspector(classId) {
@@ -414,28 +517,45 @@ function renderClassInspector(classId) {
   headerRow.innerHTML = `<td colspan="2" style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.05em;padding-top:12px;">Properties</td>`;
   tbody.appendChild(headerRow);
 
-  // Existing properties
+  // Existing properties — each property is a block with stacked rows
   for (let i = 0; i < cls.properties.length; i++) {
     const prop = cls.properties[i];
     const tr = document.createElement('tr');
     tr.className = 'class-prop-row';
+    const td = document.createElement('td');
+    td.colSpan = 2;
 
-    // Property name cell
-    const nameTd = document.createElement('td');
+    // Row 1: property name (full width) + delete button
+    const row1 = document.createElement('div');
+    row1.className = 'prop-row-line';
+
     const propNameInput = document.createElement('input');
     propNameInput.type = 'text';
-    propNameInput.className = 'inspector-input';
+    propNameInput.className = 'inspector-input prop-name-input';
+    propNameInput.placeholder = 'property name';
     propNameInput.value = prop.name;
-    propNameInput.addEventListener('input', () => {
-      prop.name = propNameInput.value.trim();
-    });
+    propNameInput.addEventListener('input', () => { prop.name = propNameInput.value.trim(); });
     propNameInput.addEventListener('keydown', (e) => e.stopPropagation());
-    nameTd.appendChild(propNameInput);
+    row1.appendChild(propNameInput);
 
-    // Type + delete cell
-    const typeTd = document.createElement('td');
+    const delBtn = document.createElement('button');
+    delBtn.className = 'inspector-delete-btn';
+    delBtn.textContent = '\u00d7';
+    delBtn.title = 'Delete property';
+    delBtn.addEventListener('click', () => {
+      cls.properties.splice(i, 1);
+      renderClassInspector(classId);
+    });
+    row1.appendChild(delBtn);
+
+    td.appendChild(row1);
+
+    // Row 2: type dropdown (full width)
+    const row2 = document.createElement('div');
+    row2.className = 'prop-row-line prop-sub-row';
+
     const typeSelect = document.createElement('select');
-    typeSelect.className = 'inspector-select';
+    typeSelect.className = 'inspector-select prop-type-select';
     for (const t of PROPERTY_TYPES) {
       const opt = document.createElement('option');
       opt.value = t;
@@ -449,39 +569,68 @@ function renderClassInspector(classId) {
       renderClassInspector(classId);
     });
     typeSelect.addEventListener('keydown', (e) => e.stopPropagation());
-    typeTd.appendChild(typeSelect);
+    row2.appendChild(typeSelect);
 
-    // If type is EnumClass, show sub-dropdown
+    td.appendChild(row2);
+
+    // Row 2: EnumClass sub-dropdown (if applicable)
     if (prop.type === 'EnumClass') {
+      const enumRow = document.createElement('div');
+      enumRow.className = 'prop-row-line prop-sub-row';
+      const enumLabel = document.createElement('span');
+      enumLabel.className = 'prop-sub-label';
+      enumLabel.textContent = 'Enum:';
+      enumRow.appendChild(enumLabel);
       const enumSelect = document.createElement('select');
       enumSelect.className = 'inspector-select';
+      enumSelect.style.flex = '1';
       for (const en of S.enumClasses) {
         const opt = document.createElement('option');
-        opt.value = en.id;
-        opt.textContent = en.name;
+        opt.value = en.id; opt.textContent = en.name;
         if (prop.enumClassId === en.id) opt.selected = true;
         enumSelect.appendChild(opt);
       }
-      enumSelect.addEventListener('change', () => {
-        prop.enumClassId = Number(enumSelect.value);
-      });
+      enumSelect.addEventListener('change', () => { prop.enumClassId = Number(enumSelect.value); });
       enumSelect.addEventListener('keydown', (e) => e.stopPropagation());
-      typeTd.appendChild(enumSelect);
+      enumRow.appendChild(enumSelect);
+      td.appendChild(enumRow);
     }
 
-    // Delete property button
-    const delBtn = document.createElement('button');
-    delBtn.className = 'inspector-delete-btn';
-    delBtn.textContent = '\u00d7';
-    delBtn.title = 'Delete property';
-    delBtn.addEventListener('click', () => {
-      cls.properties.splice(i, 1);
-      renderClassInspector(classId);
-    });
-    typeTd.appendChild(delBtn);
+    // Row 3: Default value (checkbox + input)
+    const defRow = document.createElement('div');
+    defRow.className = 'prop-row-line prop-sub-row';
+    const defCb = document.createElement('input');
+    defCb.type = 'checkbox';
+    defCb.checked = !!prop.defaultValue;
+    defCb.title = 'Has default value';
+    defRow.appendChild(defCb);
+    const defLabel = document.createElement('span');
+    defLabel.className = 'prop-sub-label';
+    defLabel.textContent = 'default:';
+    defRow.appendChild(defLabel);
 
-    tr.appendChild(nameTd);
-    tr.appendChild(typeTd);
+    const defInput = document.createElement('input');
+    defInput.type = 'text';
+    defInput.className = 'inspector-input';
+    defInput.style.flex = '1';
+    defInput.value = prop.defaultValue || '';
+    defInput.style.display = defCb.checked ? '' : 'none';
+    defInput.addEventListener('input', () => { prop.defaultValue = defInput.value; });
+    defInput.addEventListener('keydown', (e) => e.stopPropagation());
+    defRow.appendChild(defInput);
+
+    defCb.addEventListener('change', () => {
+      if (defCb.checked) {
+        defInput.style.display = '';
+        prop.defaultValue = defInput.value || '';
+      } else {
+        defInput.style.display = 'none';
+        delete prop.defaultValue;
+      }
+    });
+
+    td.appendChild(defRow);
+    tr.appendChild(td);
     tbody.appendChild(tr);
   }
 
@@ -634,14 +783,39 @@ function notifyLeftPanel() { if (_renderLeftPanel) _renderLeftPanel(); }
 
 // ── JSON serialisation ───────────────────────────────────────────────────────
 
+function serialiseNodes(nodes) {
+  return (nodes || []).map(n => ({
+    id: n.id, type: n.type,
+    x: Math.round(n.x), y: Math.round(n.y),
+    w: n.w, h: n.h,
+    label: n.label || undefined,
+    ...(n.entryBehaviours && n.entryBehaviours.length ? { entryBehaviours: n.entryBehaviours } : {}),
+    ...(n.doBehaviours && n.doBehaviours.length ? { doBehaviours: n.doBehaviours } : {}),
+    ...(n.exitBehaviours && n.exitBehaviours.length ? { exitBehaviours: n.exitBehaviours } : {}),
+  }));
+}
+
+function serialiseConns(connections) {
+  return (connections || []).map(c => ({
+    id: c.id, fromId: c.fromId, toId: c.toId, label: c.label,
+    ...(c.danglingFrom ? { danglingFrom: c.danglingFrom } : {}),
+    ...(c.danglingTo   ? { danglingTo:   c.danglingTo }   : {}),
+    ...(c.event ? { event: c.event } : {}),
+    ...(c.guardCondition ? { guardCondition: c.guardCondition } : {}),
+    ...(c.behaviours && c.behaviours.length ? { behaviours: c.behaviours } : {}),
+  }));
+}
+
 export function serialiseDiagram() {
-  // Save the active object's current nodes/connections first
-  const activeObj = S.objects.find(o => o.id === S.activeObjectId);
-  if (activeObj) {
-    activeObj.nodes = S.nodes;
-    activeObj.connections = S.connections;
-    activeObj.nextId = S.nextId;
-    activeObj.nextConnId = S.nextConnId;
+  // Save the active class's current nodes/connections first
+  if (S.activeClassId) {
+    const activeCls = S.classes.find(c => c.id === S.activeClassId);
+    if (activeCls) {
+      activeCls.nodes = S.nodes;
+      activeCls.connections = S.connections;
+      activeCls.nextId = S.nextId;
+      activeCls.nextConnId = S.nextConnId;
+    }
   }
 
   return {
@@ -651,29 +825,14 @@ export function serialiseDiagram() {
       classId: o.classId,
       builtIn: o.builtIn || undefined,
       ...(o.propertyValues && Object.keys(o.propertyValues).length ? { propertyValues: o.propertyValues } : {}),
-      ...(o.stageProperties ? { stageProperties: o.stageProperties } : {}),
-      nodes: (o.nodes || []).map(n => ({
-        id: n.id, type: n.type,
-        x: Math.round(n.x), y: Math.round(n.y),
-        w: n.w, h: n.h,
-        label: n.label || undefined,
-        ...(n.entryBehaviours && n.entryBehaviours.length ? { entryBehaviours: n.entryBehaviours } : {}),
-        ...(n.doBehaviours && n.doBehaviours.length ? { doBehaviours: n.doBehaviours } : {}),
-        ...(n.exitBehaviours && n.exitBehaviours.length ? { exitBehaviours: n.exitBehaviours } : {}),
-      })),
-      connections: (o.connections || []).map(c => ({
-        id: c.id, fromId: c.fromId, toId: c.toId, label: c.label,
-        ...(c.danglingFrom ? { danglingFrom: c.danglingFrom } : {}),
-        ...(c.danglingTo   ? { danglingTo:   c.danglingTo }   : {}),
-        ...(c.event ? { event: c.event } : {}),
-        ...(c.guardCondition ? { guardCondition: c.guardCondition } : {}),
-        ...(c.behaviours && c.behaviours.length ? { behaviours: c.behaviours } : {}),
-      })),
     })),
     classes: S.classes.map(c => ({
       id: c.id, name: c.name,
       builtIn: c.builtIn || undefined,
       properties: c.properties,
+      ...(c.methods ? { methods: c.methods } : {}),
+      nodes: serialiseNodes(c.id === S.activeClassId ? S.nodes : c.nodes),
+      connections: serialiseConns(c.id === S.activeClassId ? S.connections : c.connections),
     })),
     enumClasses: S.enumClasses.map(e => ({
       id: e.id, name: e.name,

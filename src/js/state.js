@@ -17,10 +17,12 @@ export const S = {
   nextObjId: 1,
   nextClassId: 1,
   nextEnumId: 1,
-  objects: [],          // { id, name, classId, builtIn, nodes, connections, nextId, nextConnId }
-  classes: [],          // { id, name, properties: [{ name, type, enumClassId? }], builtIn }
+  objects: [],          // { id, name, classId, builtIn, propertyValues }
+  classes: [],          // { id, name, properties, builtIn, nodes, connections, nextId, nextConnId }
   enumClasses: [],      // { id, name, values: [string], builtIn }
   activeObjectId: null,
+  activeClassId: null,  // V59: class whose state chart is being edited
+  editingClassChart: false, // true when editing a class chart (not just viewing via object)
   selectedLeftPanelItem: null, // { kind: 'object'|'class'|'enum', id }
 
   // Currently active / selected
@@ -106,6 +108,7 @@ export function initDefaults() {
       { name: 'setTransparency', signature: 'setTransparency(alpha)', description: 'Set transparency (0..1)' },
     ],
     builtIn: true,
+    nodes: [], connections: [], nextId: 1, nextConnId: 1,
   };
   S.classes.push(cssColorClass);
 
@@ -120,6 +123,7 @@ export function initDefaults() {
       { name: 'tickIntervalSeconds', type: 'Real', defaultValue: '0.1' },
     ],
     builtIn: true,
+    nodes: [], connections: [], nextId: 1, nextConnId: 1,
   };
   S.classes.push(gameClass);
 
@@ -145,6 +149,7 @@ export function initDefaults() {
       { name: 'move', signature: 'move()', description: 'Add dx to xPosition, dy to yPosition' },
     ],
     builtIn: true,
+    nodes: [], connections: [], nextId: 1, nextConnId: 1,
   };
   S.classes.push(spriteClass);
 
@@ -163,6 +168,7 @@ export function initDefaults() {
       { name: 'minYAtBottomOfScreen', type: 'Boolean', defaultValue: 'true' },
     ],
     builtIn: true,
+    nodes: [], connections: [], nextId: 1, nextConnId: 1,
   };
   S.classes.push(stageClass);
 
@@ -172,10 +178,6 @@ export function initDefaults() {
     name: 'game',
     classId: gameClass.id,
     builtIn: true,
-    nodes: [],
-    connections: [],
-    nextId: 1,
-    nextConnId: 1,
     propertyValues: { tickIntervalSeconds: '0.1' },
   };
   S.objects.push(gameObj);
@@ -185,10 +187,6 @@ export function initDefaults() {
     name: 'stage',
     classId: stageClass.id,
     builtIn: true,
-    nodes: [],
-    connections: [],
-    nextId: 1,
-    nextConnId: 1,
     propertyValues: {
       bgImageFit: 'FIT_TO_STAGE',
       xMinVirtual: '-100', xMaxVirtual: '100',
@@ -199,4 +197,5 @@ export function initDefaults() {
   S.objects.push(stageObj);
 
   S.activeObjectId = gameObj.id;
+  S.activeClassId = gameClass.id;
 }

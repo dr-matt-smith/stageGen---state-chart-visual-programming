@@ -46,17 +46,15 @@ export function renderLeftPanel() {
   // ── Object mode: objects + props expanded, classes/enums minimized ──
   // ── Class mode:  objects minimized, classes/enums expanded ──────────
 
+  sectionObjProps.style.display = 'none'; // V60: object props now in Inspector
+
   if (inObjectMode) {
     sectionObjects.classList.remove('minimized');
-    sectionObjProps.style.display = '';
     sectionClasses.classList.add('minimized');
     sectionEnums.classList.add('minimized');
     btnEditClasses.style.display = '';
-    renderObjectProperties();
   } else {
     sectionObjects.classList.add('minimized');
-    sectionObjProps.style.display = 'none';
-    objectPropsList.innerHTML = '';
     sectionClasses.classList.remove('minimized');
     sectionEnums.classList.remove('minimized');
     btnEditClasses.style.display = 'none';
@@ -66,9 +64,20 @@ export function renderLeftPanel() {
   renderClassesList();
   renderEnumsList();
 
-  // Canvas no-object overlay
+  // Canvas no-object overlay — hide when any class chart is displayed
+  const hasChart = S.activeClassId != null;
   if (canvasNoObject) {
-    canvasNoObject.style.display = inObjectMode ? 'none' : '';
+    canvasNoObject.style.display = hasChart ? 'none' : '';
+  }
+
+  // Toggle state toolbar enabled/disabled (only enabled when editing a class)
+  const stateToolbar = document.getElementById('state-toolbar');
+  if (stateToolbar) {
+    if (S.editingClassChart) {
+      stateToolbar.classList.remove('disabled');
+    } else {
+      stateToolbar.classList.add('disabled');
+    }
   }
 }
 
@@ -347,90 +356,105 @@ function renderObjectProperties() {
 
 }
 
-// ── Object switching ────────────────────────────────────────────────────────
+// ── Chart loading helpers ───────────────────────────────────────────────────
 
-/**
- * Save the current canvas state (nodes/connections) into the active object,
- * then load the target object's state chart onto the canvas.
- */
-export function selectObject(id) {
-  // If already selected and we're just re-clicking, do nothing
-  if (id === S.activeObjectId && S.selectedLeftPanelItem == null) return;
+/** Load a class's state chart onto the canvas. */
+function loadClassChart(cls) {
+  S.nodes = cls.nodes || [];
+  S.connections = cls.connections || [];
+  S.nextId = cls.nextId || 1;
+  S.nextConnId = cls.nextConnId || 1;
 
-  // Deselect everything on the canvas
+  const needsFit = [];
+  for (const n of S.nodes) {
+    if (!n.el) {
+      n.el = buildNodeElement(n.type, n.id);
+      n.el.style.left = `${n.x}px`;
+      n.el.style.top  = `${n.y}px`;
+      n.el.style.width = `${n.w}px`;
+      n.el.style.height = `${n.h}px`;
+      const labelEl = n.el.querySelector('.node-label');
+      if (labelEl && n.label) labelEl.textContent = n.label;
+      n.mmEl = document.createElement('div');
+      n.mmEl.className = `minimap-node minimap-${n.type}-node`;
+      if (_wireNodeEvents) _wireNodeEvents(n);
+      needsFit.push(n);
+    }
+    canvasEl.appendChild(n.el);
+    mmStatesEl.appendChild(n.mmEl);
+  }
+  for (const n of needsFit) { fitLabelFontSize(n); positionMinimapNode(n); }
+
+  for (const c of S.connections) {
+    if (!c.group) {
+      c.group = makeConnGroup();
+      c.curveOffset = c.curveOffset || 0;
+      c.group.querySelector('.conn-hitarea').addEventListener('click', (e) => { e.stopPropagation(); selectConnFn(c); });
+      const lblEl = c.group.querySelector('.conn-label');
+      lblEl.addEventListener('click', (e) => { e.stopPropagation(); selectConnFn(c); });
+      lblEl.addEventListener('dblclick', (e) => { e.stopPropagation(); selectConnFn(c); startConnEditing(c); });
+      c.group.querySelector('.conn-delete').addEventListener('click', (e) => { e.stopPropagation(); deleteConnection(c); });
+    }
+    connSvg.appendChild(c.group);
+  }
+  recalcPairOffsets();
+}
+
+/** Detach all node/connection DOM elements from the canvas. */
+function clearCanvasDOM() {
+  for (const n of S.nodes) {
+    if (n.el && n.el.parentNode) n.el.remove();
+    if (n.mmEl && n.mmEl.parentNode) n.mmEl.remove();
+  }
+  for (const c of S.connections) {
+    if (c.group && c.group.parentNode) c.group.remove();
+  }
+  S.activeNode = null;
+  S.selectedConn = null;
+  S.selectedNodes = [];
+}
+
+/** Save live S.nodes/connections back to the class being edited. */
+export function saveActiveClassChart() {
+  if (!S.activeClassId) return;
+  const cls = S.classes.find(c => c.id === S.activeClassId);
+  if (!cls) return;
+  cls.nodes = S.nodes;
+  cls.connections = S.connections;
+  cls.nextId = S.nextId;
+  cls.nextConnId = S.nextConnId;
+}
+
+// For backward compatibility with existing code
+export const saveActiveObjectChart = saveActiveClassChart;
+
+/** Deselect canvas and clear it. */
+function deselCanvas() {
   if (S.activeNode) deactivateNode();
   if (S.selectedConn) deselectConn();
   if (S.selectedNodes.length) clearGroup();
+}
 
-  // Save current state chart into the active object
-  if (S.activeObjectId != null) {
-    saveActiveObjectChart();
-    clearCanvasDOM();
-  }
+// ── Object switching ────────────────────────────────────────────────────────
 
-  // Load the target object
+/**
+ * Select an object — displays its class's state chart (read-only).
+ */
+export function selectObject(id) {
+  if (id === S.activeObjectId && S.selectedLeftPanelItem == null && !S.editingClassChart) return;
+
+  deselCanvas();
+  if (S.activeClassId) { saveActiveClassChart(); clearCanvasDOM(); }
+
   S.activeObjectId = id;
   S.selectedLeftPanelItem = null;
+  S.editingClassChart = false;
+
   const obj = S.objects.find(o => o.id === id);
   if (obj) {
-    S.nodes = obj.nodes;
-    S.connections = obj.connections;
-    S.nextId = obj.nextId;
-    S.nextConnId = obj.nextConnId;
-
-    // Re-attach or create DOM elements for nodes
-    const needsFit = [];
-    for (const n of S.nodes) {
-      if (!n.el) {
-        // Hydrate: build DOM from data
-        n.el = buildNodeElement(n.type, n.id);
-        n.el.style.left   = `${n.x}px`;
-        n.el.style.top    = `${n.y}px`;
-        n.el.style.width  = `${n.w}px`;
-        n.el.style.height = `${n.h}px`;
-        const labelEl = n.el.querySelector('.node-label');
-        if (labelEl && n.label) labelEl.textContent = n.label;
-
-        n.mmEl = document.createElement('div');
-        n.mmEl.className = `minimap-node minimap-${n.type}-node`;
-
-        if (_wireNodeEvents) _wireNodeEvents(n);
-        needsFit.push(n);
-      }
-      canvasEl.appendChild(n.el);
-      mmStatesEl.appendChild(n.mmEl);
-    }
-    // Fit font sizes after all nodes are in the DOM (so measurements work)
-    for (const n of needsFit) {
-      fitLabelFontSize(n);
-      positionMinimapNode(n);
-    }
-    // Re-attach or create DOM elements for connections
-    for (const c of S.connections) {
-      if (!c.group) {
-        // Hydrate: build SVG group from data
-        c.group = makeConnGroup();
-        c.curveOffset = c.curveOffset || 0;
-
-        c.group.querySelector('.conn-hitarea').addEventListener('click', (e) => {
-          e.stopPropagation();
-          selectConnFn(c);
-        });
-        const lblEl = c.group.querySelector('.conn-label');
-        lblEl.addEventListener('click', (e) => { e.stopPropagation(); selectConnFn(c); });
-        lblEl.addEventListener('dblclick', (e) => {
-          e.stopPropagation();
-          selectConnFn(c);
-          startConnEditing(c);
-        });
-        c.group.querySelector('.conn-delete').addEventListener('click', (e) => {
-          e.stopPropagation();
-          deleteConnection(c);
-        });
-      }
-      connSvg.appendChild(c.group);
-    }
-    recalcPairOffsets();
+    const cls = S.classes.find(c => c.id === obj.classId);
+    S.activeClassId = cls ? cls.id : null;
+    if (cls) loadClassChart(cls);
   }
 
   refreshMinimap();
@@ -440,20 +464,17 @@ export function selectObject(id) {
 }
 
 /**
- * Deselect the current object — clears the canvas and shows no state chart.
- * Used when switching to class/enum editing mode.
+ * Deselect the current object — clears the canvas.
  */
 export function deselectObject() {
-  if (S.activeObjectId == null) return;
+  if (S.activeObjectId == null && S.activeClassId == null) return;
 
-  if (S.activeNode) deactivateNode();
-  if (S.selectedConn) deselectConn();
-  if (S.selectedNodes.length) clearGroup();
-
-  saveActiveObjectChart();
-  clearCanvasDOM();
+  deselCanvas();
+  if (S.activeClassId) { saveActiveClassChart(); clearCanvasDOM(); }
 
   S.activeObjectId = null;
+  S.activeClassId = null;
+  S.editingClassChart = false;
   S.nodes = [];
   S.connections = [];
   S.nextId = 1;
@@ -464,8 +485,7 @@ export function deselectObject() {
 }
 
 /**
- * Switch to class/enum editing mode.
- * Deselects the current object and updates the panel layout.
+ * Switch to class/enum editing mode (no state chart visible).
  */
 export function enterClassMode() {
   deselectObject();
@@ -482,40 +502,23 @@ export function enterObjectMode() {
   if (first) selectObject(first.id);
 }
 
-/** Save live S.nodes/connections data into the currently active object. */
-export function saveActiveObjectChart() {
-  const obj = S.objects.find(o => o.id === S.activeObjectId);
-  if (!obj) return;
-  obj.nodes = S.nodes;
-  obj.connections = S.connections;
-  obj.nextId = S.nextId;
-  obj.nextConnId = S.nextConnId;
-}
-
-/** Detach all node/connection DOM elements from the canvas (without destroying them). */
-function clearCanvasDOM() {
-  for (const n of S.nodes) {
-    if (n.el && n.el.parentNode) n.el.remove();
-    if (n.mmEl && n.mmEl.parentNode) n.mmEl.remove();
-  }
-  for (const c of S.connections) {
-    if (c.group && c.group.parentNode) c.group.remove();
-  }
-  S.activeNode = null;
-  S.selectedConn = null;
-  S.selectedNodes = [];
-}
-
 // ── Left panel item selection (for inspector) ───────────────────────────────
 
 export function selectClassInPanel(id) {
-  // Deselect current object — clears canvas
-  deselectObject();
+  deselCanvas();
+  if (S.activeClassId) { saveActiveClassChart(); clearCanvasDOM(); }
 
-  if (S.activeNode) deactivateNode();
-  if (S.selectedConn) deselectConn();
-  if (S.selectedNodes.length) clearGroup();
+  S.activeObjectId = null;
+  S.activeClassId = id;
+  S.editingClassChart = true;
   S.selectedLeftPanelItem = { kind: 'class', id };
+
+  // Load the class's state chart for editing
+  const cls = S.classes.find(c => c.id === id);
+  if (cls) loadClassChart(cls);
+
+  refreshMinimap();
+  applyTransform();
   updateInspector();
   renderLeftPanel();
 }
@@ -540,10 +543,6 @@ export function addObject(name, classId) {
     name: name || `Object ${S.nextObjId - 1}`,
     classId: classId || (S.classes.length > 0 ? S.classes[0].id : null),
     builtIn: false,
-    nodes: [],
-    connections: [],
-    nextId: 1,
-    nextConnId: 1,
     propertyValues: {},
   };
   S.objects.push(obj);
@@ -557,6 +556,7 @@ export function addClass(name) {
     name: name || `Class ${S.nextClassId - 1}`,
     properties: [],
     builtIn: false,
+    nodes: [], connections: [], nextId: 1, nextConnId: 1,
   };
   S.classes.push(cls);
   renderLeftPanel();

@@ -186,6 +186,41 @@
   color: #ef4444;
 }
 
+/* ── Class property row layout ──────────────────────────────────────────────── */
+
+.class-prop-row td {
+  padding: 6px 6px 4px;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.prop-row-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.prop-type-select {
+  flex: 1;
+}
+
+.prop-name-input {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.prop-sub-row {
+  margin-top: 4px;
+  padding-left: 2px;
+}
+
+.prop-sub-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* ── Sound method rows ─────────────────────────────────────────────────────── */
 
 .method-signature {

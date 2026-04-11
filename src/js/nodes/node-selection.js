@@ -31,11 +31,12 @@ export function activateNode(node) {
   deactivateNode();
   S.activeNode = node;
   node.el.classList.add('node-active');
-  if (node.type === 'state' || node.type === 'choice') {
+  const editable = S.editingClassChart === true;
+  if (editable && (node.type === 'state' || node.type === 'choice')) {
     addResizeHandles(node);
   }
-  if (node.type !== 'end' && node.type !== 'terminate') addConnHandle(node);
-  addNodeDeleteHandle(node);
+  if (editable && node.type !== 'end' && node.type !== 'terminate') addConnHandle(node);
+  if (editable) addNodeDeleteHandle(node);
   if (S.onSelectionChange) S.onSelectionChange();
 }
 

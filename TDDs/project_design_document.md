@@ -349,5 +349,38 @@ Version 58 - Options to stretch bg image to fit stage
 - ✅ 151 Playwright e2e tests passing
 
 
+Version 59 features - state chart defined for Class, not individual objects
+==================
+
+- ✅ Each Class has its own State Chart (nodes + connections stored on the class)
+  - ✅ Each object inherits its State Chart from its parent Class
+  - ✅ Objects share the class chart — editing affects all objects of that class
+  - ✅ Each object has its own property values, so at runtime each maintains independent state
+- ✅ When a Class is selected in the Data panel, its State Chart can be edited
+  - ✅ Palette buttons (State, Start, End, Terminate, Choice) available for dragging onto canvas
+- ✅ When an Object is selected, its class's State Chart is displayed (visually dimmed palette)
+- ✅ Runtime engine gets state charts from classes, not objects
+- ✅ Serialisation stores nodes/connections on classes (with legacy migration for old object-based JSON)
+- ✅ JSON load migrates legacy object-based state charts to classes automatically
+- ✅ Added 11 new Vitest unit tests (211 total)
+- ✅ 151 Playwright e2e tests passing (updated for class-based architecture)
 
 
+Version 60 features - UI tidyup
+==================
+
+
+- ✅ Moved Export JSON, Load JSON, Load Example, Build buttons from canvas to top toolbar (right side)
+- ✅ Moved zoom toolbar to top-right of diagram stage
+- ✅ Moved state tools (State, Start, End, Terminate, Choice) into own `#state-toolbar` at top-left of canvas
+  - ✅ State toolbar disabled (greyed out, no pointer events) when no class is selected for editing
+  - ✅ Enabled only when a Class is selected in the Data panel
+- ✅ Object property editing moved into Inspector (renders when object is selected, no node active)
+- ✅ New Object/Class/Enum Class creation uses modal dialog instead of browser prompt
+  - ✅ Object modal: class dropdown + name input with validation (must start with a-z or _, no spaces)
+  - ✅ Class/Enum modals: name input with proper "New Class" / "New Enum Class" heading
+- ✅ Class property editor: type dropdown first (25% width), then property name (75% width)
+  - ✅ Default value checkbox — when checked, shows input for setting a default value
+- ✅ Updated all Vitest and Playwright tests for new UI structure
+- ✅ 209 Vitest unit tests passing
+- ✅ 148 Playwright e2e tests passing

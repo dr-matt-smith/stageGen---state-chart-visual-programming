@@ -45,8 +45,8 @@ function createContext(obj) {
     className: cls ? cls.name : null,
     props,
     currentNodeId: null, // will be set to start node's first transition target
-    nodes: obj.nodes || [],
-    connections: obj.connections || [],
+    nodes: cls?.nodes || obj.nodes || [],
+    connections: cls?.connections || obj.connections || [],
   };
 }
 
@@ -264,7 +264,8 @@ export function startRuntime() {
   const errors = [];
   for (const obj of S.objects) {
     if (obj.name === 'stage') continue;
-    const nodes = obj.id === S.activeObjectId ? S.nodes : (obj.nodes || []);
+    const cls = S.classes.find(c => c.id === obj.classId);
+    const nodes = cls ? (cls.id === S.activeClassId ? S.nodes : (cls.nodes || [])) : [];
     const hasStart = nodes.some(n => n.type === 'start');
     if (!hasStart && nodes.length > 0) {
       errors.push(`Object "${obj.name}" is missing a Start state`);
@@ -280,10 +281,11 @@ export function startRuntime() {
 
   // Create runtime contexts for each object
   for (const obj of S.objects) {
-    // Use live nodes/connections for active object, stored ones for others
-    const liveObj = obj.id === S.activeObjectId
-      ? { ...obj, nodes: S.nodes, connections: S.connections }
-      : obj;
+    // Get state chart from the object's class (V59)
+    const cls = S.classes.find(c => c.id === obj.classId);
+    const liveNodes = cls && cls.id === S.activeClassId ? S.nodes : (cls?.nodes || []);
+    const liveConns = cls && cls.id === S.activeClassId ? S.connections : (cls?.connections || []);
+    const liveObj = { ...obj, nodes: liveNodes, connections: liveConns };
     const ctx = createContext(liveObj);
 
     // Find start node and follow its first transition
