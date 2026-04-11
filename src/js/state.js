@@ -85,6 +85,14 @@ export function initDefaults() {
   };
   S.enumClasses.push(gameTypeEnum);
 
+  const bgImageFitEnum = {
+    id: S.nextEnumId++,
+    name: 'BgImageFit',
+    values: ['FIT_TO_STAGE', 'FIT_WIDTH', 'FIT_HEIGHT', 'CENTRE'],
+    builtIn: true,
+  };
+  S.enumClasses.push(bgImageFitEnum);
+
   // ── CSSColor class ──
   const cssColorClass = {
     id: S.nextClassId++,
@@ -147,6 +155,7 @@ export function initDefaults() {
     properties: [
       { name: 'bgTint', type: 'CSSColor' },
       { name: 'bgImage', type: 'Image' },
+      { name: 'bgImageFit', type: 'EnumClass', enumClassId: bgImageFitEnum.id, defaultValue: 'FIT_TO_STAGE' },
       { name: 'xMinVirtual', type: 'Real', defaultValue: '-100' },
       { name: 'xMaxVirtual', type: 'Real', defaultValue: '100' },
       { name: 'yMinVirtual', type: 'Real', defaultValue: '0' },
@@ -181,6 +190,7 @@ export function initDefaults() {
     nextId: 1,
     nextConnId: 1,
     propertyValues: {
+      bgImageFit: 'FIT_TO_STAGE',
       xMinVirtual: '-100', xMaxVirtual: '100',
       yMinVirtual: '0', yMaxVirtual: '100',
       minYAtBottomOfScreen: 'true',

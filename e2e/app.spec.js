@@ -817,12 +817,13 @@ test.describe('V44: Left panel visibility', () => {
     expect(texts.some(t => t.includes('Stage'))).toBe(true);
   });
 
-  test('enums list contains default GameType and SpecialKeyType', async ({ page }) => {
+  test('enums list contains default enums', async ({ page }) => {
     const items = page.locator('#enums-list .left-panel-item');
-    await expect(items).toHaveCount(2);
+    await expect(items).toHaveCount(3);
     const texts = await items.allTextContents();
     expect(texts.some(t => t.includes('GameType'))).toBe(true);
     expect(texts.some(t => t.includes('SpecialKeyType'))).toBe(true);
+    expect(texts.some(t => t.includes('BgImageFit'))).toBe(true);
   });
 
   test('game object context menu has no Delete option', async ({ page }) => {

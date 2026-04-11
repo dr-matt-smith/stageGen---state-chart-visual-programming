@@ -634,7 +634,7 @@ setRuntimeCallbacks(
       if (stageCtx.props.bgTint) runtimeStage.style.background = stageCtx.props.bgTint;
       if (stageCtx.props.bgImage) {
         runtimeStage.style.backgroundImage = `url('${stageCtx.props.bgImage}')`;
-        runtimeStage.style.backgroundSize = 'cover';
+        applyBgImageFit(runtimeStage, stageCtx.props.bgImageFit);
       }
     }
     renderSprites(contexts);
@@ -652,6 +652,35 @@ setRuntimeCallbacks(
     runtimeStage.innerHTML = '';
   }
 );
+
+/**
+ * Apply CSS background sizing based on BgImageFit enum value.
+ */
+function applyBgImageFit(el, fitValue) {
+  switch (fitValue) {
+    case 'FIT_WIDTH':
+      el.style.backgroundSize = '100% auto';
+      el.style.backgroundPosition = 'center top';
+      el.style.backgroundRepeat = 'no-repeat';
+      break;
+    case 'FIT_HEIGHT':
+      el.style.backgroundSize = 'auto 100%';
+      el.style.backgroundPosition = 'center top';
+      el.style.backgroundRepeat = 'no-repeat';
+      break;
+    case 'CENTRE':
+      el.style.backgroundSize = 'auto';
+      el.style.backgroundPosition = 'center center';
+      el.style.backgroundRepeat = 'no-repeat';
+      break;
+    case 'FIT_TO_STAGE':
+    default:
+      el.style.backgroundSize = '100% 100%';
+      el.style.backgroundPosition = 'center top';
+      el.style.backgroundRepeat = 'no-repeat';
+      break;
+  }
+}
 
 /**
  * Map virtual stage coordinates to screen pixels.
@@ -872,4 +901,4 @@ export { renderLeftPanel, selectObject, deselectObject, enterClassMode, enterObj
          duplicateObject } from './left-panel.js';
 export { startRuntime, stopRuntime, isRunning, getRuntimeContexts } from './runtime.js';
 export { buildAndDownload } from './build-export.js';
-export { virtualToScreen };
+export { virtualToScreen, applyBgImageFit };

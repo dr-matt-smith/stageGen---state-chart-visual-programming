@@ -335,16 +335,18 @@ Version 57 - Stage class and stage object
 - ✅ Added 8 new Vitest unit tests (193 total)
 - ✅ 151 Playwright e2e tests passing
 
-Version 58 features - options to stretch bg image to fit stage
+Version 58 - Options to stretch bg image to fit stage
 ==================
 
-- [] add to the Stage class a dropdown option
-  - [] fitToStage (stretch vertically and horizontall to fit image to stage) - make this the default
-  - [] fitWidthToStage
-  - [] fitHeightToStage
-  - [] centreOnStage
-
-- [] and add Vitest and Playwright tests for all features implemented
+- ✅ Built-in BgImageFit enum with values: FIT_TO_STAGE, FIT_WIDTH, FIT_HEIGHT, CENTRE
+- ✅ Stage class has bgImageFit property (EnumClass, default FIT_TO_STAGE)
+  - ✅ FIT_TO_STAGE — stretches image to fill stage (100% 100%)
+  - ✅ FIT_WIDTH — fits width, auto height (100% auto)
+  - ✅ FIT_HEIGHT — fits height, auto width (auto 100%)
+  - ✅ CENTRE — natural size, centered on stage
+- ✅ Applied to both editor runtime and standalone build runtime
+- ✅ Added 7 new Vitest unit tests (200 total)
+- ✅ 151 Playwright e2e tests passing
 
 
 

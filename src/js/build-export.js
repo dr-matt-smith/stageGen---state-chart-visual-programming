@@ -265,7 +265,11 @@ function start() {
   if (stageCtx?.propertyValues?.bgTint) stageEl.style.background = stageCtx.propertyValues.bgTint;
   if (stageCtx?.propertyValues?.bgImage && ASSET_MAP[stageCtx.propertyValues.bgImage]) {
     stageEl.style.backgroundImage = "url('" + ASSET_MAP[stageCtx.propertyValues.bgImage] + "')";
-    stageEl.style.backgroundSize = 'cover';
+    const fit = stageCtx.propertyValues.bgImageFit || 'FIT_TO_STAGE';
+    if (fit==='FIT_WIDTH'){stageEl.style.backgroundSize='100% auto';stageEl.style.backgroundPosition='center top';stageEl.style.backgroundRepeat='no-repeat';}
+    else if(fit==='FIT_HEIGHT'){stageEl.style.backgroundSize='auto 100%';stageEl.style.backgroundPosition='center top';stageEl.style.backgroundRepeat='no-repeat';}
+    else if(fit==='CENTRE'){stageEl.style.backgroundSize='auto';stageEl.style.backgroundPosition='center center';stageEl.style.backgroundRepeat='no-repeat';}
+    else{stageEl.style.backgroundSize='100% 100%';stageEl.style.backgroundPosition='center top';stageEl.style.backgroundRepeat='no-repeat';}
   }
 
   for (const obj of PROJECT.objects) {

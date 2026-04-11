@@ -1819,3 +1819,58 @@ describe('V57: Sprite tint property is CSSColor type', () => {
     expect(tint.type).toBe('CSSColor');
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V58 — Background image fit options
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V58: BgImageFit enum', () => {
+  it('BgImageFit built-in enum exists with 4 values', () => {
+    const en = app.S.enumClasses.find(e => e.name === 'BgImageFit');
+    expect(en).toBeTruthy();
+    expect(en.builtIn).toBe(true);
+    expect(en.values).toEqual(['FIT_TO_STAGE', 'FIT_WIDTH', 'FIT_HEIGHT', 'CENTRE']);
+  });
+});
+
+describe('V58: Stage bgImageFit property', () => {
+  it('Stage class has bgImageFit property', () => {
+    const cls = app.S.classes.find(c => c.name === 'Stage');
+    const prop = cls.properties.find(p => p.name === 'bgImageFit');
+    expect(prop).toBeTruthy();
+    expect(prop.type).toBe('EnumClass');
+    expect(prop.defaultValue).toBe('FIT_TO_STAGE');
+  });
+
+  it('stage object has bgImageFit default value', () => {
+    const stage = app.S.objects.find(o => o.name === 'stage');
+    expect(stage.propertyValues.bgImageFit).toBe('FIT_TO_STAGE');
+  });
+});
+
+describe('V58: applyBgImageFit CSS mapping', () => {
+  it('FIT_TO_STAGE sets backgroundSize to 100% 100%', () => {
+    const el = document.createElement('div');
+    app.applyBgImageFit(el, 'FIT_TO_STAGE');
+    expect(el.style.backgroundSize).toBe('100% 100%');
+  });
+
+  it('FIT_WIDTH sets backgroundSize containing 100%', () => {
+    const el = document.createElement('div');
+    app.applyBgImageFit(el, 'FIT_WIDTH');
+    expect(el.style.backgroundSize).toContain('100%');
+  });
+
+  it('FIT_HEIGHT sets backgroundSize containing 100%', () => {
+    const el = document.createElement('div');
+    app.applyBgImageFit(el, 'FIT_HEIGHT');
+    expect(el.style.backgroundSize).toContain('100%');
+  });
+
+  it('CENTRE sets backgroundSize to auto and centres', () => {
+    const el = document.createElement('div');
+    app.applyBgImageFit(el, 'CENTRE');
+    expect(el.style.backgroundSize).toBe('auto');
+    expect(el.style.backgroundPosition).toBe('center center');
+  });
+});

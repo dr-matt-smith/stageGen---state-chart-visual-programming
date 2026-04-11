@@ -31,14 +31,17 @@ Version X features - say and menu state
 
 
 
-Version X features - option to stretch bg image to fit stage
+Version X features - state chart defined for Class, not individual objects
 ==================
 
-- [] add to the Stage class a dropdown option
-  - [] fitToStage (stretch vertically and horizontall to fit image to stage) - make this the default
-  - [] fitWidthToStage
-  - [] fitHeightToStage
-  - [] centreOnStage
+- [] each Class can have a State Chart
+  - [] each object inherits its State Chart from its parent Class
+    - [] objects cannot change the state chart they inherit from their Class
+    - [] but each object can have different property values, so at runtime, each object maintains its own state chart settings
+
+- [] so when a Class is selected, its State Chart Diagram can be edited
+  - [] and we see the state templates acros the top rightr of the screen, that can be dragged into the diagram
+- [] when an Object is selected, we can see its State Chart, and select objects to see their properties, but cannot edit the state chart for the individual object
 
 - [] and add Vitest and Playwright tests for all features implemented
 
