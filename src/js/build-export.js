@@ -208,22 +208,48 @@ function normKey(e) { return KEY_MAP[e.key] || (e.key.length===1 ? e.key.toUpper
 document.addEventListener('keydown', e => { if(running) keyState.add(normKey(e)); });
 document.addEventListener('keyup', e => { if(running){ const k=normKey(e); keyState.delete(k); keyUpState.add(k); }});
 
+function getVBounds() {
+  const s = contexts.find(c=>c.className==='Stage');
+  if (!s) return {xMin:-100,xMax:100,yMin:0,yMax:100,yFlip:true};
+  return {xMin:parseFloat(s.props.xMinVirtual)||-100, xMax:parseFloat(s.props.xMaxVirtual)||100,
+    yMin:parseFloat(s.props.yMinVirtual)||0, yMax:parseFloat(s.props.yMaxVirtual)||100,
+    yFlip:s.props.minYAtBottomOfScreen!=='false'};
+}
+function v2s(vx, vy, sw, sh, b) {
+  const xR=b.xMax-b.xMin||200, yR=b.yMax-b.yMin||100;
+  const sx=(vx-b.xMin)/xR*sw;
+  const sy=b.yFlip ? (1-(vy-b.yMin)/yR)*sh : ((vy-b.yMin)/yR)*sh;
+  return {x:sx,y:sy};
+}
+
 function renderSprites() {
   const stage = document.getElementById('stage');
   stage.innerHTML = '';
+  const sw = stage.clientWidth||800, sh = stage.clientHeight||600;
+  const b = getVBounds();
+  const xR=b.xMax-b.xMin||200, yR=b.yMax-b.yMin||100;
   for (const ctx of contexts) {
     if (ctx.className !== 'Sprite') continue;
     if (ctx.props.visible === 'false') continue;
+    const vx = parseFloat(ctx.props.xPosition)||0, vy = parseFloat(ctx.props.yPosition)||0;
+    const {x:sx,y:sy} = v2s(vx,vy,sw,sh,b);
     const el = document.createElement('div');
     el.className = 'sprite';
-    el.style.left = (parseFloat(ctx.props.xPosition)||0) + 'px';
-    el.style.top  = (parseFloat(ctx.props.yPosition)||0) + 'px';
+    el.style.left = sx + 'px';
+    el.style.top  = sy + 'px';
+    const sc = ctx.props.scaleToStage==='true';
+    const wV = parseFloat(ctx.props.widthStagePixels)||0;
+    const hV = parseFloat(ctx.props.heightStagePixels)||0;
+    if (sc && wV) el.style.width = (wV/xR*sw)+'px';
+    if (sc && hV) el.style.height = (hV/yR*sh)+'px';
     if (ctx.props.displayImage && ASSET_MAP[ctx.props.displayImage]) {
       const img = document.createElement('img');
       img.src = ASSET_MAP[ctx.props.displayImage];
+      if (sc) { img.style.width='100%'; img.style.height='100%'; }
       el.appendChild(img);
-    } else {
-      el.style.width = '32px'; el.style.height = '32px';
+    } else if (!sc || (!wV && !hV)) {
+      if (!el.style.width) el.style.width = '32px';
+      if (!el.style.height) el.style.height = '32px';
       el.style.background = '#3b82f6'; el.style.borderRadius = '4px';
     }
     stage.appendChild(el);
@@ -234,9 +260,13 @@ function renderSprites() {
 
 function start() {
   running = true; startTime = Date.now(); keyState.clear(); keyUpState.clear(); contexts = [];
+  const stageEl = document.getElementById('stage');
   const stageCtx = PROJECT.objects.find(o => o.name === 'stage');
-  if (stageCtx?.propertyValues?.backgroundColour)
-    document.getElementById('stage').style.background = stageCtx.propertyValues.backgroundColour;
+  if (stageCtx?.propertyValues?.bgTint) stageEl.style.background = stageCtx.propertyValues.bgTint;
+  if (stageCtx?.propertyValues?.bgImage && ASSET_MAP[stageCtx.propertyValues.bgImage]) {
+    stageEl.style.backgroundImage = "url('" + ASSET_MAP[stageCtx.propertyValues.bgImage] + "')";
+    stageEl.style.backgroundSize = 'cover';
+  }
 
   for (const obj of PROJECT.objects) {
     const ctx = createContext(obj);

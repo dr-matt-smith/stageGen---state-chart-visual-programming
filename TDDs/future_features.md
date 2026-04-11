@@ -14,7 +14,7 @@ Version X features - say and menu state
 ==================
 
 - [] add a new say/menu state, which can have transitions out from it for each option offered
-    - in Inspector user choses "Say" or "Menu"
+    - in Inspector user chooses "Say" or "Menu"
       - for Say
         - user can write text to be shown on screen
         - can choose message category
@@ -28,4 +28,17 @@ Version X features - say and menu state
 
 - [] and add Vitest and Playwright tests for all features implemented
 
+
+
+
+Version X features - option to stretch bg image to fit stage
+==================
+
+- [] add to the Stage class a dropdown option
+  - [] fitToStage (stretch vertically and horizontall to fit image to stage) - make this the default
+  - [] fitWidthToStage
+  - [] fitHeightToStage
+  - [] centreOnStage
+
+- [] and add Vitest and Playwright tests for all features implemented
 

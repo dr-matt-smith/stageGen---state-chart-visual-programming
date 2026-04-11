@@ -34,12 +34,14 @@ and preview the build with:
  npm run preview
 ```
 
-## ISSUE with PythonAnywhere publish
 
-the refs in the  `inxdex.html` for CSS and JS need to be changed from  `./` to  `./son-of-fungus/` for it to work when viewing:
-- https://drmattsmith.PythonAnywhere.com/media/public/son-of-fungus
+## Stage virtual co-ordinate system
 
-very annoying! 
-
-
-
+The co-ordinates for sprites are mapped to a virtual stage:
+- vertical (Y-axis)
+  - 0 is bottom of screen
+  - 100 is top of screen
+- horizontal (X-axis)
+  - 0 is centre of screen
+  - -100 is left of screen
+  - +100 is right of screen

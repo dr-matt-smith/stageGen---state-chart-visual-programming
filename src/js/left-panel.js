@@ -345,39 +345,6 @@ function renderObjectProperties() {
     }
   }
 
-  // For stage object, show its special properties
-  if (obj.stageProperties) {
-    const stageHeader = document.createElement('div');
-    stageHeader.className = 'object-prop-row';
-    stageHeader.style.fontWeight = '600';
-    stageHeader.style.color = 'var(--text-muted)';
-    stageHeader.style.fontSize = '10px';
-    stageHeader.style.textTransform = 'uppercase';
-    stageHeader.style.letterSpacing = '0.04em';
-    stageHeader.style.paddingTop = '8px';
-    stageHeader.textContent = 'Stage Properties';
-    objectPropsList.appendChild(stageHeader);
-
-    for (const sp of obj.stageProperties) {
-      const row = document.createElement('div');
-      row.className = 'object-prop-row';
-      const label = document.createElement('span');
-      label.className = 'object-prop-label';
-      label.textContent = sp.name;
-      row.appendChild(label);
-      const valueDiv = document.createElement('div');
-      valueDiv.className = 'object-prop-value';
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = obj.propertyValues[sp.name] || '';
-      input.placeholder = sp.type;
-      input.addEventListener('input', () => { obj.propertyValues[sp.name] = input.value; });
-      input.addEventListener('keydown', (e) => e.stopPropagation());
-      valueDiv.appendChild(input);
-      row.appendChild(valueDiv);
-      objectPropsList.appendChild(row);
-    }
-  }
 }
 
 // ── Object switching ────────────────────────────────────────────────────────

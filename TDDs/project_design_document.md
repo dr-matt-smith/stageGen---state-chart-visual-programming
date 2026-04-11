@@ -285,5 +285,67 @@ Version 54 - Build button to export runnable ZIP
 - ✅ Added 2 new Vitest unit tests (174 total)
 - ✅ Added 3 new Playwright e2e tests (151 total)
 
+Version 55 features - relative stage coordinate system
+==================
+
+- ✅ Virtual coordinate system mapped to actual screen space:                                  
+  - ✅ X: -100 (left) to 100 (right), center = 0                                               
+  - ✅ Y: 0 (bottom) to 100 (top)                                                              
+  - ✅ Formula: screenX = (vx + 100) / 200 * stageWidth, screenY = (1 - vy / 100) * stageHeight
+- ✅ Sprites with values exceeding limits are positioned off-screen (partially or fully invisible)                                                                                            
+- ✅ Applied to both editor runtime and standalone build runtime                               
+- ✅ Added 7 new Vitest unit tests (181 total)                                                 
+- ✅ 151 Playwright e2e tests passing  
+
+
+Version 56 - Scaling of sprites to virtual stage coordinates
+==================
+
+- ✅ Added 3 new properties to Sprite class:
+  - ✅ scaleToStage (Boolean, default false)
+  - ✅ widthStagePixels (Real) — width in virtual stage units (out of 200)
+  - ✅ heightStagePixels (Real) — height in virtual stage units (out of 100)
+- ✅ When scaleToStage is true, sprite rendered at scaled size:
+  - width = widthStagePixels / 200 * stageWidth pixels
+  - height = heightStagePixels / 100 * stageHeight pixels
+  - e.g. heightStagePixels=10 on a 600px stage = 60px (10% of stage height)
+- ✅ Applied to both editor runtime and standalone build runtime
+- ✅ Images scale to fill the computed dimensions when scaleToStage is true
+- ✅ Added 4 new Vitest unit tests (185 total)
+- ✅ 151 Playwright e2e tests passing
+
+
+
+Version 57 - Stage class and stage object
+==================
+
+- ✅ Built-in Stage class with properties:
+  - ✅ bgTint (CSSColor) — stage background tint
+  - ✅ bgImage (Image) — stage background image
+  - ✅ xMinVirtual (Real, default -100), xMaxVirtual (Real, default 100)
+  - ✅ yMinVirtual (Real, default 0), yMaxVirtual (Real, default 100)
+  - ✅ minYAtBottomOfScreen (Boolean, default true) — Y=0 at bottom when true
+- ✅ Stage object now uses Stage class (replaced old hardcoded stageProperties)
+- ✅ Virtual coordinate system uses configurable bounds from Stage class
+  - ✅ Both editor runtime and standalone build use the Stage object's virtual dimensions
+  - ✅ Sprite scaling uses dynamic xRange/yRange from Stage bounds
+- ✅ bgImage included in Build ZIP when set
+- ✅ bgTint and bgImage applied to runtime stage background
+- ✅ Sprite tint property changed from Object to CSSColor type
+- ✅ Added 8 new Vitest unit tests (193 total)
+- ✅ 151 Playwright e2e tests passing
+
+Version 58 features - options to stretch bg image to fit stage
+==================
+
+- [] add to the Stage class a dropdown option
+  - [] fitToStage (stretch vertically and horizontall to fit image to stage) - make this the default
+  - [] fitWidthToStage
+  - [] fitHeightToStage
+  - [] centreOnStage
+
+- [] and add Vitest and Playwright tests for all features implemented
+
+
 
 

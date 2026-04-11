@@ -805,15 +805,16 @@ test.describe('V44: Left panel visibility', () => {
     expect(texts.some(t => t.includes('stage'))).toBe(true);
   });
 
-  test('classes list contains Game, Sprite, and CSSColor', async ({ page }) => {
+  test('classes list contains Game, Sprite, CSSColor, and Stage', async ({ page }) => {
     // classes are minimized when object is active, expand first
     await page.locator('#btn-edit-classes').click();
     const items = page.locator('#classes-list .left-panel-item');
-    await expect(items).toHaveCount(3);
+    await expect(items).toHaveCount(4);
     const texts = await items.allTextContents();
     expect(texts.some(t => t.includes('Game'))).toBe(true);
     expect(texts.some(t => t.includes('Sprite'))).toBe(true);
     expect(texts.some(t => t.includes('CSSColor'))).toBe(true);
+    expect(texts.some(t => t.includes('Stage'))).toBe(true);
   });
 
   test('enums list contains default GameType and SpecialKeyType', async ({ page }) => {

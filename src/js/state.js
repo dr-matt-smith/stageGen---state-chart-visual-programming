@@ -128,7 +128,10 @@ export function initDefaults() {
       { name: 'yPosition', type: 'Real' },
       { name: 'dx', type: 'Real' },
       { name: 'dy', type: 'Real' },
-      { name: 'tint', type: 'Object', objectClassId: cssColorClass.id },
+      { name: 'tint', type: 'CSSColor' },
+      { name: 'scaleToStage', type: 'Boolean', defaultValue: 'false' },
+      { name: 'widthStagePixels', type: 'Real' },
+      { name: 'heightStagePixels', type: 'Real' },
     ],
     methods: [
       { name: 'move', signature: 'move()', description: 'Add dx to xPosition, dy to yPosition' },
@@ -136,6 +139,23 @@ export function initDefaults() {
     builtIn: true,
   };
   S.classes.push(spriteClass);
+
+  // ── Stage class ──
+  const stageClass = {
+    id: S.nextClassId++,
+    name: 'Stage',
+    properties: [
+      { name: 'bgTint', type: 'CSSColor' },
+      { name: 'bgImage', type: 'Image' },
+      { name: 'xMinVirtual', type: 'Real', defaultValue: '-100' },
+      { name: 'xMaxVirtual', type: 'Real', defaultValue: '100' },
+      { name: 'yMinVirtual', type: 'Real', defaultValue: '0' },
+      { name: 'yMaxVirtual', type: 'Real', defaultValue: '100' },
+      { name: 'minYAtBottomOfScreen', type: 'Boolean', defaultValue: 'true' },
+    ],
+    builtIn: true,
+  };
+  S.classes.push(stageClass);
 
   // ── Built-in objects ──
   const gameObj = {
@@ -154,20 +174,17 @@ export function initDefaults() {
   const stageObj = {
     id: S.nextObjId++,
     name: 'stage',
-    classId: null, // special built-in, no class
+    classId: stageClass.id,
     builtIn: true,
     nodes: [],
     connections: [],
     nextId: 1,
     nextConnId: 1,
-    propertyValues: { xMin: '0', yMin: '0', xMax: '800', yMax: '600', backgroundColour: 'white' },
-    stageProperties: [
-      { name: 'xMin', type: 'Real' },
-      { name: 'yMin', type: 'Real' },
-      { name: 'xMax', type: 'Real' },
-      { name: 'yMax', type: 'Real' },
-      { name: 'backgroundColour', type: 'String' },
-    ],
+    propertyValues: {
+      xMinVirtual: '-100', xMaxVirtual: '100',
+      yMinVirtual: '0', yMaxVirtual: '100',
+      minYAtBottomOfScreen: 'true',
+    },
   };
   S.objects.push(stageObj);
 

@@ -196,6 +196,19 @@
           "name": "tint",
           "type": "Object",
           "objectClassId": 1
+        },
+        {
+          "name": "scaleToStage",
+          "type": "Boolean",
+          "defaultValue": "false"
+        },
+        {
+          "name": "widthStagePixels",
+          "type": "Real"
+        },
+        {
+          "name": "heightStagePixels",
+          "type": "Real"
         }
       ]
     }

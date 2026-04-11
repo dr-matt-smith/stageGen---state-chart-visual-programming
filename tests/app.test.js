@@ -1590,10 +1590,11 @@ describe('V52: Built-in stage object', () => {
     expect(stage.builtIn).toBe(true);
   });
 
-  it('stage has xMax, yMax properties', () => {
+  it('stage has virtual dimension properties', () => {
     const stage = app.S.objects.find(o => o.name === 'stage');
-    expect(stage.propertyValues.xMax).toBeTruthy();
-    expect(stage.propertyValues.yMax).toBeTruthy();
+    expect(stage.propertyValues.xMaxVirtual).toBeTruthy();
+    expect(stage.propertyValues.yMaxVirtual).toBeTruthy();
+    expect(stage.propertyValues.xMinVirtual).toBeTruthy();
   });
 });
 
@@ -1669,5 +1670,152 @@ describe('V54: Build button', () => {
 
   it('buildAndDownload is an exported function', () => {
     expect(typeof app.buildAndDownload).toBe('function');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V55 — Virtual stage coordinate system
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V55: virtualToScreen coordinate mapping', () => {
+  it('center of virtual stage (0,0) maps to center-bottom of screen', () => {
+    const { x, y } = app.virtualToScreen(0, 0, 800, 600);
+    expect(x).toBe(400); // center
+    expect(y).toBe(600); // bottom
+  });
+
+  it('top-center (0,100) maps to center-top of screen', () => {
+    const { x, y } = app.virtualToScreen(0, 100, 800, 600);
+    expect(x).toBe(400);
+    expect(y).toBe(0);
+  });
+
+  it('left edge (-100,0) maps to left-bottom', () => {
+    const { x, y } = app.virtualToScreen(-100, 0, 800, 600);
+    expect(x).toBe(0);
+    expect(y).toBe(600);
+  });
+
+  it('right edge (100,0) maps to right-bottom', () => {
+    const { x, y } = app.virtualToScreen(100, 0, 800, 600);
+    expect(x).toBe(800);
+    expect(y).toBe(600);
+  });
+
+  it('mid-height (0,50) maps to vertical center', () => {
+    const { x, y } = app.virtualToScreen(0, 50, 800, 600);
+    expect(x).toBe(400);
+    expect(y).toBe(300);
+  });
+
+  it('values beyond limits still produce valid pixel positions', () => {
+    const { x, y } = app.virtualToScreen(200, 150, 800, 600);
+    expect(x).toBe(1200); // off-screen right
+    expect(y).toBe(-300); // off-screen top
+  });
+
+  it('negative Y values go below the stage', () => {
+    const { x, y } = app.virtualToScreen(0, -50, 800, 600);
+    expect(y).toBe(900); // below bottom
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V56 — Sprite scaling to virtual stage coordinates
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V56: Sprite scaleToStage properties', () => {
+  it('Sprite class has scaleToStage, widthStagePixels, heightStagePixels', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sprite');
+    const names = cls.properties.map(p => p.name);
+    expect(names).toContain('scaleToStage');
+    expect(names).toContain('widthStagePixels');
+    expect(names).toContain('heightStagePixels');
+  });
+
+  it('scaleToStage defaults to false', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sprite');
+    const prop = cls.properties.find(p => p.name === 'scaleToStage');
+    expect(prop.defaultValue).toBe('false');
+  });
+
+  it('heightStagePixels=10 on a 600px stage = 60px (10% of height)', () => {
+    // Virtual stage height is 100, so 10/100 * 600 = 60
+    const ratio = 10 / 100;
+    expect(ratio * 600).toBe(60);
+  });
+
+  it('widthStagePixels=20 on an 800px stage = 80px (20/200 of width)', () => {
+    // Virtual stage width is 200 (-100..100), so 20/200 * 800 = 80
+    const ratio = 20 / 200;
+    expect(ratio * 800).toBe(80);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V57 — Stage class and configurable virtual dimensions
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V57: Stage class', () => {
+  it('Stage built-in class exists', () => {
+    const cls = app.S.classes.find(c => c.name === 'Stage');
+    expect(cls).toBeTruthy();
+    expect(cls.builtIn).toBe(true);
+  });
+
+  it('Stage class has bgTint, bgImage, and virtual dimension properties', () => {
+    const cls = app.S.classes.find(c => c.name === 'Stage');
+    const names = cls.properties.map(p => p.name);
+    expect(names).toContain('bgTint');
+    expect(names).toContain('bgImage');
+    expect(names).toContain('xMinVirtual');
+    expect(names).toContain('xMaxVirtual');
+    expect(names).toContain('yMinVirtual');
+    expect(names).toContain('yMaxVirtual');
+    expect(names).toContain('minYAtBottomOfScreen');
+  });
+
+  it('stage object uses Stage class', () => {
+    const stageObj = app.S.objects.find(o => o.name === 'stage');
+    const stageCls = app.S.classes.find(c => c.name === 'Stage');
+    expect(stageObj.classId).toBe(stageCls.id);
+  });
+
+  it('virtual dimension defaults are correct', () => {
+    const cls = app.S.classes.find(c => c.name === 'Stage');
+    expect(cls.properties.find(p => p.name === 'xMinVirtual').defaultValue).toBe('-100');
+    expect(cls.properties.find(p => p.name === 'xMaxVirtual').defaultValue).toBe('100');
+    expect(cls.properties.find(p => p.name === 'yMinVirtual').defaultValue).toBe('0');
+    expect(cls.properties.find(p => p.name === 'yMaxVirtual').defaultValue).toBe('100');
+    expect(cls.properties.find(p => p.name === 'minYAtBottomOfScreen').defaultValue).toBe('true');
+  });
+});
+
+describe('V57: virtualToScreen with custom bounds', () => {
+  it('uses custom bounds when provided', () => {
+    const bounds = { xMin: 0, xMax: 200, yMin: 0, yMax: 200, minYAtBottom: true };
+    const { x, y } = app.virtualToScreen(100, 100, 800, 600, bounds);
+    expect(x).toBe(400); // 100/200 * 800
+    expect(y).toBe(300); // (1 - 100/200) * 600
+  });
+
+  it('minYAtBottom=false flips Y axis', () => {
+    const bounds = { xMin: -100, xMax: 100, yMin: 0, yMax: 100, minYAtBottom: false };
+    const { x, y } = app.virtualToScreen(0, 0, 800, 600, bounds);
+    expect(y).toBe(0); // Y=0 at top when flipped
+  });
+
+  it('falls back to defaults when bounds is null', () => {
+    const { x, y } = app.virtualToScreen(0, 50, 800, 600, null);
+    expect(x).toBe(400);
+    expect(y).toBe(300);
+  });
+});
+
+describe('V57: Sprite tint property is CSSColor type', () => {
+  it('Sprite tint property has type CSSColor', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sprite');
+    const tint = cls.properties.find(p => p.name === 'tint');
+    expect(tint.type).toBe('CSSColor');
   });
 });

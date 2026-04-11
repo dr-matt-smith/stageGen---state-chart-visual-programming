@@ -628,10 +628,14 @@ setRuntimeCallbacks(
     btnRun.querySelector('svg').innerHTML = '<rect x="2" y="2" width="10" height="10" fill="currentColor"/>';
     btnRun.childNodes[btnRun.childNodes.length - 1].textContent = ' Stop';
     runtimeStage.style.display = '';
-    // Set stage background
-    const stageCtx = contexts.find(c => c.objName === 'stage');
+    // Set stage background from Stage class properties
+    const stageCtx = contexts.find(c => c.className === 'Stage');
     if (stageCtx) {
-      runtimeStage.style.background = stageCtx.props.backgroundColour || 'white';
+      if (stageCtx.props.bgTint) runtimeStage.style.background = stageCtx.props.bgTint;
+      if (stageCtx.props.bgImage) {
+        runtimeStage.style.backgroundImage = `url('${stageCtx.props.bgImage}')`;
+        runtimeStage.style.backgroundSize = 'cover';
+      }
     }
     renderSprites(contexts);
   },
@@ -649,25 +653,77 @@ setRuntimeCallbacks(
   }
 );
 
+/**
+ * Map virtual stage coordinates to screen pixels.
+ * Uses configurable virtual bounds from stage object.
+ * Sprites may exceed these limits (partially or fully off-screen).
+ */
+function virtualToScreen(vx, vy, stageW, stageH, vBounds) {
+  const xMin = vBounds?.xMin ?? -100;
+  const xMax = vBounds?.xMax ?? 100;
+  const yMin = vBounds?.yMin ?? 0;
+  const yMax = vBounds?.yMax ?? 100;
+  const yFlip = vBounds?.minYAtBottom !== false; // default true = Y0 at bottom
+
+  const xRange = xMax - xMin || 200;
+  const yRange = yMax - yMin || 100;
+  const sx = (vx - xMin) / xRange * stageW;
+  const sy = yFlip
+    ? (1 - (vy - yMin) / yRange) * stageH
+    : ((vy - yMin) / yRange) * stageH;
+  return { x: sx, y: sy };
+}
+
+/** Extract virtual bounds from the stage context. */
+function getVirtualBounds(contexts) {
+  const stageCtx = contexts.find(c => c.className === 'Stage');
+  if (!stageCtx) return null;
+  return {
+    xMin: parseFloat(stageCtx.props.xMinVirtual) || -100,
+    xMax: parseFloat(stageCtx.props.xMaxVirtual) || 100,
+    yMin: parseFloat(stageCtx.props.yMinVirtual) || 0,
+    yMax: parseFloat(stageCtx.props.yMaxVirtual) || 100,
+    minYAtBottom: stageCtx.props.minYAtBottomOfScreen !== 'false',
+  };
+}
+
 function renderSprites(contexts) {
   runtimeStage.innerHTML = '';
+  const stageW = runtimeStage.clientWidth || 800;
+  const stageH = runtimeStage.clientHeight || 600;
+  const vBounds = getVirtualBounds(contexts);
+
   for (const ctx of contexts) {
     if (ctx.className !== 'Sprite') continue;
     if (ctx.props.visible === 'false') continue;
 
+    const vx = parseFloat(ctx.props.xPosition) || 0;
+    const vy = parseFloat(ctx.props.yPosition) || 0;
+    const { x: sx, y: sy } = virtualToScreen(vx, vy, stageW, stageH, vBounds);
+
     const el = document.createElement('div');
     el.className = 'runtime-sprite';
-    el.style.left = `${parseFloat(ctx.props.xPosition) || 0}px`;
-    el.style.top  = `${parseFloat(ctx.props.yPosition) || 0}px`;
+    el.style.left = `${sx}px`;
+    el.style.top  = `${sy}px`;
+
+    // Scale sprite if scaleToStage is true
+    const scale = ctx.props.scaleToStage === 'true';
+    const wVirt = parseFloat(ctx.props.widthStagePixels) || 0;
+    const hVirt = parseFloat(ctx.props.heightStagePixels) || 0;
+    const xRange = (vBounds?.xMax ?? 100) - (vBounds?.xMin ?? -100) || 200;
+    const yRange = (vBounds?.yMax ?? 100) - (vBounds?.yMin ?? 0) || 100;
+    if (scale && wVirt) el.style.width  = `${wVirt / xRange * stageW}px`;
+    if (scale && hVirt) el.style.height = `${hVirt / yRange * stageH}px`;
 
     if (ctx.props.displayImage) {
       const img = document.createElement('img');
       img.src = ctx.props.displayImage;
       img.alt = ctx.objName;
+      if (scale) { img.style.width = '100%'; img.style.height = '100%'; }
       el.appendChild(img);
-    } else {
-      el.style.width = '32px';
-      el.style.height = '32px';
+    } else if (!scale || (!wVirt && !hVirt)) {
+      if (!el.style.width) el.style.width = '32px';
+      if (!el.style.height) el.style.height = '32px';
       el.style.background = '#3b82f6';
       el.style.borderRadius = '4px';
     }
@@ -816,3 +872,4 @@ export { renderLeftPanel, selectObject, deselectObject, enterClassMode, enterObj
          duplicateObject } from './left-panel.js';
 export { startRuntime, stopRuntime, isRunning, getRuntimeContexts } from './runtime.js';
 export { buildAndDownload } from './build-export.js';
+export { virtualToScreen };
