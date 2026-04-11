@@ -36,7 +36,10 @@
           "y": 211,
           "w": 120,
           "h": 50,
-          "label": "stationary"
+          "label": "stationary",
+          "entryBehaviours": [
+            "dx=0"
+          ]
         },
         {
           "id": 3,
@@ -45,7 +48,13 @@
           "y": 211,
           "w": 120,
           "h": 50,
-          "label": "moving left"
+          "label": "moving left",
+          "entryBehaviours": [
+            "dx=-1"
+          ],
+          "doBehaviours": [
+            "move()"
+          ]
         },
         {
           "id": 4,
@@ -54,7 +63,13 @@
           "y": 212,
           "w": 120,
           "h": 50,
-          "label": "moving_right"
+          "label": "moving_right",
+          "entryBehaviours": [
+            "dx=1"
+          ],
+          "doBehaviours": [
+            "move()"
+          ]
         }
       ],
       "connections": [
@@ -82,6 +97,26 @@
           "event": {
             "type": "keyDown",
             "value": "ARROW_LEFT"
+          }
+        },
+        {
+          "id": 4,
+          "fromId": 3,
+          "toId": 2,
+          "label": "transition",
+          "event": {
+            "type": "keyUp",
+            "value": "ARROW_LEFT"
+          }
+        },
+        {
+          "id": 5,
+          "fromId": 4,
+          "toId": 2,
+          "label": "transition",
+          "event": {
+            "type": "keyUp",
+            "value": "ARROW_RIGHT"
           }
         }
       ]

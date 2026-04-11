@@ -271,5 +271,19 @@ Version 53 features - move Terminate state to left of Play
 - ✅ Added 2 new Playwright e2e tests (148 total)
 
 
+Version 54 - Build button to export runnable ZIP
+==================
+
+- ✅ "Build" button added to canvas overlay (next to Export/Load JSON)
+- ✅ Generates a runnable ZIP containing:
+  - ✅ index.html — standalone HTML with embedded CSS link and JavaScript runtime + project data
+  - ✅ /images — referenced image files from the project
+  - ✅ /sounds — referenced sound files from the project
+  - ✅ /css/style.css — CSS rules for the runtime stage and sprites
+- ✅ Standalone runtime includes: state machine engine, event handling, sprite rendering, tick loop
+- ✅ ZIP downloads automatically with project name as filename
+- ✅ Added 2 new Vitest unit tests (174 total)
+- ✅ Added 3 new Playwright e2e tests (151 total)
+
 
 

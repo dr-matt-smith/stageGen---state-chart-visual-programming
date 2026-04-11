@@ -513,6 +513,11 @@ document.getElementById('btn-load-json').addEventListener('click', showJsonLoad)
 import { exampleFiles } from './asset-manifest.js';
 document.getElementById('btn-load-example').addEventListener('click', () => showLoadExample(exampleFiles));
 
+import { buildAndDownload } from './build-export.js';
+document.getElementById('btn-build').addEventListener('click', () => {
+  buildAndDownload().catch(err => alert('Build failed: ' + err.message));
+});
+
 // Handle loaded JSON data
 setOnJsonLoaded((data) => {
   // Clear current state
@@ -810,3 +815,4 @@ export { renderLeftPanel, selectObject, deselectObject, enterClassMode, enterObj
          selectClassInPanel, selectEnumInPanel, saveActiveObjectChart,
          duplicateObject } from './left-panel.js';
 export { startRuntime, stopRuntime, isRunning, getRuntimeContexts } from './runtime.js';
+export { buildAndDownload } from './build-export.js';

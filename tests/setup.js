@@ -59,6 +59,7 @@ export function setupDOM() {
           <button id="btn-export-json" class="toolbar-btn">Export JSON</button>
           <button id="btn-load-json" class="toolbar-btn">Load JSON</button>
           <button id="btn-load-example" class="toolbar-btn">Load Example</button>
+          <button id="btn-build" class="toolbar-btn">Build</button>
         </div>
         <div id="minimap" style="width:200px;height:150px;">
           <div id="minimap-states"></div>

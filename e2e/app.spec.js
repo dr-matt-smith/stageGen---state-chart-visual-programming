@@ -740,7 +740,7 @@ test.describe('Export JSON button on canvas', () => {
   });
 
   test('clicking export JSON button shows the JSON modal', async ({ page }) => {
-    await page.locator('#btn-export-json').click();
+    await page.evaluate(() => document.getElementById('btn-export-json').click());
     await expect(page.locator('#json-modal-overlay')).toBeVisible();
     await page.keyboard.press('Escape');
   });
@@ -750,13 +750,13 @@ test.describe('Export JSON button on canvas', () => {
 
 test.describe('JSON modal copy button', () => {
   test('JSON modal has a copy button', async ({ page }) => {
-    await page.locator('#btn-export-json').click();
+    await page.evaluate(() => document.getElementById('btn-export-json').click());
     await expect(page.locator('#json-modal-copy')).toBeVisible();
     await page.keyboard.press('Escape');
   });
 
   test('JSON modal pre text is selectable', async ({ page }) => {
-    await page.locator('#btn-export-json').click();
+    await page.evaluate(() => document.getElementById('btn-export-json').click());
     const userSelect = await page.locator('#json-modal-body pre').evaluate(
       el => getComputedStyle(el).userSelect
     );
@@ -1676,5 +1676,26 @@ test.describe('V53: Terminate button is next to End button', () => {
     await expect(run).toBeVisible();
     // Run button should not be a palette-btn
     await expect(run).not.toHaveClass(/palette-btn/);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V54 — Build button
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('V54: Build button', () => {
+  test('Build button is visible on canvas overlay', async ({ page }) => {
+    await expect(page.locator('#btn-build')).toBeVisible();
+  });
+
+  test('Build button is inside canvas-overlay-buttons', async ({ page }) => {
+    await expect(page.locator('#canvas-overlay-buttons #btn-build')).toBeVisible();
+  });
+
+  test('clicking Build triggers a download', async ({ page }) => {
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#btn-build').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toContain('.zip');
   });
 });

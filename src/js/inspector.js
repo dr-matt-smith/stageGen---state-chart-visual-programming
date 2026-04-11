@@ -650,6 +650,8 @@ export function serialiseDiagram() {
       name: o.name,
       classId: o.classId,
       builtIn: o.builtIn || undefined,
+      ...(o.propertyValues && Object.keys(o.propertyValues).length ? { propertyValues: o.propertyValues } : {}),
+      ...(o.stageProperties ? { stageProperties: o.stageProperties } : {}),
       nodes: (o.nodes || []).map(n => ({
         id: n.id, type: n.type,
         x: Math.round(n.x), y: Math.round(n.y),

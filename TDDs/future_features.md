@@ -29,15 +29,3 @@ Version X features - say and menu state
 - [] and add Vitest and Playwright tests for all features implemented
 
 
-Version X features - add a "Build" button, to export runnable version as a ZIP
-==================
-
-- [] add a "Build" button, to export runnable version as a ZIP
-  - [] this version should have files:
-    - index.html (containing HTML & JavaScript)
-    - /images (for any images used by the project objects, as properties or set by state chart behaviours)
-    - /sounds (for any sounds used by the project objects, as properties or set by state chart behaviours)
-    - /css (for the CSS rules for the project)
-
-- [] and add Vitest and Playwright tests for all features implemented
-

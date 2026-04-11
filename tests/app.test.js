@@ -1657,3 +1657,17 @@ describe('V53: Terminate button next to End in toolbar', () => {
     expect(choiceIdx).toBe(termIdx + 1);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V54 — Build button
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V54: Build button', () => {
+  it('Build button exists in DOM', () => {
+    expect(document.getElementById('btn-build')).toBeTruthy();
+  });
+
+  it('buildAndDownload is an exported function', () => {
+    expect(typeof app.buildAndDownload).toBe('function');
+  });
+});
