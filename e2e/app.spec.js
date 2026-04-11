@@ -1654,3 +1654,27 @@ test.describe('V52: Run button', () => {
     await expect(page.locator('#btn-run')).not.toHaveClass(/running/);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V53 — Toolbar button order
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('V53: Terminate button is next to End button', () => {
+  test('toolbar buttons are in DOM order: State, Start, End, Terminate, Choice', async ({ page }) => {
+    const buttons = await page.locator('.toolbar-group .palette-btn').all();
+    const ids = [];
+    for (const b of buttons) ids.push(await b.getAttribute('id'));
+    const endIdx = ids.indexOf('btn-new-end');
+    const termIdx = ids.indexOf('btn-new-terminate');
+    const choiceIdx = ids.indexOf('btn-new-choice');
+    expect(termIdx).toBe(endIdx + 1);
+    expect(choiceIdx).toBe(termIdx + 1);
+  });
+
+  test('Run button is after the palette buttons', async ({ page }) => {
+    const run = page.locator('#btn-run');
+    await expect(run).toBeVisible();
+    // Run button should not be a palette-btn
+    await expect(run).not.toHaveClass(/palette-btn/);
+  });
+});

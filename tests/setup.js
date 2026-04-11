@@ -8,8 +8,8 @@ export function setupDOM() {
       <button id="btn-new-state" class="toolbar-btn palette-btn" draggable="false">State</button>
       <button id="btn-new-start" class="toolbar-btn palette-btn" draggable="false"></button>
       <button id="btn-new-end" class="toolbar-btn palette-btn" draggable="false"></button>
-      <button id="btn-new-choice" class="toolbar-btn palette-btn" draggable="false"></button>
       <button id="btn-new-terminate" class="toolbar-btn palette-btn" draggable="false"></button>
+      <button id="btn-new-choice" class="toolbar-btn palette-btn" draggable="false"></button>
       <button id="btn-run" class="toolbar-btn run-btn"><svg width="14" height="14" viewBox="0 0 14 14"><polygon points="2,1 12,7 2,13" fill="currentColor"/></svg> Run</button>
     </div>
     <div id="main-area">

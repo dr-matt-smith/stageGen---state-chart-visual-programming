@@ -266,10 +266,9 @@ Version 53 features - move Terminate state to left of Play
 
 - ✅add a Load button, that offers a list of saved JSON files from: /public/examples
 
-- in the state icon toolbar at the top left of the screen
-  - [] move the Terminate state to be next to the End state
-
-- [] and add Vitest and Playwright tests for all features implemented
+- ✅ Moved Terminate button in toolbar to be next to End (order: State, Start, End, Terminate, Choice, | Run)
+- ✅ Added 2 new Vitest unit tests (172 total)
+- ✅ Added 2 new Playwright e2e tests (148 total)
 
 
 

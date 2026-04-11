@@ -16,5 +16,5 @@ function extractPaths(glob) {
 export const imageFiles = extractPaths(imageGlob);
 export const audioFiles = extractPaths(audioGlob);
 
-const exampleGlob = import.meta.glob('/public/examples/**/*.{json,JSON}');
+const exampleGlob = import.meta.glob('/public/examples/**/*.json');
 export const exampleFiles = extractPaths(exampleGlob);

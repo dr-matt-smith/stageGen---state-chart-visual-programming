@@ -1636,3 +1636,24 @@ describe('V52: Runtime engine', () => {
     expect(app.isRunning()).toBe(false);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V53 — Toolbar button order
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V53: Terminate button next to End in toolbar', () => {
+  it('Terminate button exists in the toolbar', () => {
+    expect(document.getElementById('btn-new-terminate')).toBeTruthy();
+  });
+
+  it('toolbar buttons are in order: State, Start, End, Terminate, Choice', () => {
+    const toolbar = document.getElementById('toolbar');
+    const buttons = toolbar.querySelectorAll('.palette-btn');
+    const ids = Array.from(buttons).map(b => b.id);
+    const endIdx = ids.indexOf('btn-new-end');
+    const termIdx = ids.indexOf('btn-new-terminate');
+    const choiceIdx = ids.indexOf('btn-new-choice');
+    expect(termIdx).toBe(endIdx + 1);
+    expect(choiceIdx).toBe(termIdx + 1);
+  });
+});
