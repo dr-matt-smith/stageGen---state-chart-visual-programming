@@ -186,7 +186,7 @@
   color: #ef4444;
 }
 
-/* ── Class property row layout ──────────────────────────────────────────────── */
+/* ── Class property row layout (legacy, kept for non-diagram contexts) ───── */
 
 .class-prop-row td {
   padding: 6px 6px 4px;
@@ -240,6 +240,257 @@
 
 .sound-method-row td {
   padding: 3px 6px;
+}
+
+/* ── V62: Class diagram style ──────────────────────────────────────────────── */
+
+.class-diagram {
+  border: 2px solid var(--text-primary, #ccc);
+  border-radius: 4px;
+  font-size: 12px;
+  background: var(--bg-panel, #1e1e1e);
+}
+
+/* Compartment dividers */
+.class-diagram-compartment {
+  border-bottom: 2px solid var(--text-primary, #ccc);
+  padding: 6px 8px;
+}
+
+.class-diagram-compartment:last-child {
+  border-bottom: none;
+}
+
+/* Compartment 1: class name */
+.class-diagram-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.class-diagram-label {
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+  white-space: nowrap;
+}
+
+.class-diagram-name-input {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: var(--text-primary, #d1d5db);
+  padding: 2px 4px;
+  outline: none;
+  font-family: inherit;
+}
+
+.class-diagram-name-input:focus {
+  border-bottom-color: #60a5fa;
+}
+
+/* hasStateChart option (sits outside the diagram box) */
+.class-diagram-chart-option {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+}
+
+.class-diagram-chart-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+/* Row layout for properties and methods */
+.class-diagram-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 0;
+  min-height: 24px;
+}
+
+.class-diagram-row.class-prop-row,
+.class-diagram-row.class-method-row {
+  border-bottom: 1px solid var(--border-dark, #262f3d);
+}
+
+.class-diagram-row:last-child {
+  border-bottom: none;
+}
+
+/* Column headers */
+.class-diagram-col-headers {
+  font-size: 9px;
+  color: var(--text-dim, #4b5563);
+  text-transform: lowercase;
+  text-align: center;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--border-dark, #262f3d);
+}
+
+/* Columns */
+.cd-col-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.cd-col-default,
+.cd-col-delete {
+  width: 36px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* Property name input */
+.cd-prop-name {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: var(--text-primary, #d1d5db);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 2px;
+  outline: none;
+  font-family: inherit;
+  width: 80px;
+  min-width: 40px;
+}
+
+.cd-prop-name:focus {
+  border-bottom-color: #60a5fa;
+}
+
+.cd-colon {
+  color: var(--text-muted, #6b7280);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+.cd-equals {
+  color: var(--text-muted, #6b7280);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* Type dropdown */
+.cd-type-select {
+  background: var(--bg-input, #111827);
+  border: 1px solid var(--border-color, #374151);
+  border-radius: 3px;
+  color: var(--text-primary, #d1d5db);
+  font-size: 11px;
+  font-family: inherit;
+  padding: 1px 4px;
+  outline: none;
+}
+
+.cd-type-select:focus {
+  border-color: #60a5fa;
+}
+
+.cd-enum-select {
+  margin-left: 2px;
+}
+
+/* Default value input (inline) */
+.cd-default-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-color, #374151);
+  color: var(--text-primary, #d1d5db);
+  font-size: 11px;
+  font-family: inherit;
+  padding: 1px 2px;
+  outline: none;
+  flex: 1;
+  min-width: 60px;
+}
+
+.cd-default-input:focus {
+  border-bottom-color: #60a5fa;
+}
+
+/* Checkbox styling */
+.cd-default-cb,
+.cd-return-cb {
+  cursor: pointer;
+}
+
+/* Delete button */
+.cd-delete-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.cd-delete-btn:hover {
+  color: #f87171;
+}
+
+/* Add (+) button row */
+.cd-add-row {
+  justify-content: flex-start;
+}
+
+.cd-add-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted, #6b7280);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.cd-add-btn:hover {
+  color: var(--text-primary, #d1d5db);
+}
+
+/* Method signature input */
+.cd-method-sig {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: var(--text-primary, #d1d5db);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 2px;
+  outline: none;
+  font-family: inherit;
+  flex: 1;
+  min-width: 60px;
+}
+
+.cd-method-sig:focus {
+  border-bottom-color: #60a5fa;
+}
+
+/* Return type input */
+.cd-return-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-color, #374151);
+  color: var(--text-primary, #d1d5db);
+  font-size: 11px;
+  font-family: inherit;
+  padding: 1px 2px;
+  outline: none;
+  width: 50px;
+  min-width: 30px;
 }
 
 /* ── Example file list ──────────────────────────────────────────────────────── */

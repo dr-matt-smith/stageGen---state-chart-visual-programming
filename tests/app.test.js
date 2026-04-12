@@ -988,10 +988,11 @@ describe('V44: Inspector for classes and enums', () => {
     const cls = app.S.classes.find(c => c.name === 'Game');
     app.selectClassInPanel(cls.id);
     expect(app.S.selectedLeftPanelItem).toEqual({ kind: 'class', id: cls.id });
-    const props = document.getElementById('inspector-props');
-    expect(props.style.display).not.toBe('none');
+    // V62: class diagram is rendered instead of inspector-props table
+    const diagram = document.getElementById('class-diagram');
+    expect(diagram).toBeTruthy();
     // Should contain property name inputs
-    const inputs = props.querySelectorAll('input.inspector-input');
+    const inputs = diagram.querySelectorAll('input.cd-prop-name');
     expect(inputs.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -1398,7 +1399,8 @@ describe('V50: Sound methods in class inspector', () => {
     app.enterClassMode();
     app.selectClassInPanel(cls.id);
 
-    const rows = document.querySelectorAll('.sound-method-row');
+    // V62: methods are rendered as class-method-row in the class diagram
+    const rows = document.querySelectorAll('.class-method-row');
     expect(rows.length).toBe(3);
     expect(rows[0].textContent).toContain('BgmPlay()');
     expect(rows[1].textContent).toContain('BgmPause()');
@@ -2110,5 +2112,216 @@ describe('V61: hasStateChart checkbox in class inspector', () => {
     expect(cls.nodes.length).toBe(0);
     expect(cls.connections.length).toBe(0);
     expect(app.S.editingClassChart).toBe(false);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V62 — Class Diagram look-and-feel for editing class members
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V62: Class diagram structure', () => {
+  it('renders a class-diagram container when class is selected', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    app.selectClassInPanel(cls.id);
+    const diagram = document.getElementById('class-diagram');
+    expect(diagram).toBeTruthy();
+    expect(diagram.classList.contains('class-diagram')).toBe(true);
+  });
+
+  it('diagram has three compartments: name, properties, methods', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    app.selectClassInPanel(cls.id);
+    const comps = document.querySelectorAll('.class-diagram-compartment');
+    expect(comps.length).toBe(3);
+    expect(comps[0].classList.contains('class-diagram-name')).toBe(true);
+    expect(comps[1].classList.contains('class-diagram-props')).toBe(true);
+    expect(comps[2].classList.contains('class-diagram-methods')).toBe(true);
+  });
+
+  it('name compartment contains editable class name input', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    app.selectClassInPanel(cls.id);
+    const nameInput = document.getElementById('class-name-input');
+    expect(nameInput).toBeTruthy();
+    expect(nameInput.value).toBe('Game');
+  });
+
+  it('hides table-based inspector-props when showing class diagram', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    app.selectClassInPanel(cls.id);
+    const props = document.getElementById('inspector-props');
+    expect(props.style.display).toBe('none');
+  });
+
+  it('removes class diagram when switching to non-class view', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    app.selectClassInPanel(cls.id);
+    expect(document.getElementById('class-diagram')).toBeTruthy();
+    // Switch to object
+    const game = app.S.objects.find(o => o.name === 'game');
+    app.selectObject(game.id);
+    expect(document.getElementById('class-diagram')).toBeNull();
+  });
+});
+
+describe('V62: Property rows in class diagram', () => {
+  it('each property renders as name: Type format', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    app.selectClassInPanel(cls.id);
+    const rows = document.querySelectorAll('.class-prop-row');
+    expect(rows.length).toBe(cls.properties.length);
+    // First property "name" should have a name input and type select
+    const nameInput = rows[0].querySelector('.cd-prop-name');
+    expect(nameInput.value).toBe('name');
+    const typeSelect = rows[0].querySelector('.cd-type-select');
+    expect(typeSelect.value).toBe('String');
+  });
+
+  it('property with default value shows = value inline', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    app.selectClassInPanel(cls.id);
+    // tickIntervalSeconds has defaultValue '0.1'
+    const rows = document.querySelectorAll('.class-prop-row');
+    const tickRow = Array.from(rows).find(r => r.querySelector('.cd-prop-name')?.value === 'tickIntervalSeconds');
+    expect(tickRow).toBeTruthy();
+    const defInput = tickRow.querySelector('.cd-default-input');
+    expect(defInput).toBeTruthy();
+    expect(defInput.value).toBe('0.1');
+    const defCb = tickRow.querySelector('.cd-default-cb');
+    expect(defCb.checked).toBe(true);
+  });
+
+  it('property without default value has unchecked default checkbox', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    app.selectClassInPanel(cls.id);
+    const rows = document.querySelectorAll('.class-prop-row');
+    // "name" property has no default
+    const nameRow = Array.from(rows).find(r => r.querySelector('.cd-prop-name')?.value === 'name');
+    const defCb = nameRow.querySelector('.cd-default-cb');
+    expect(defCb.checked).toBe(false);
+    expect(nameRow.querySelector('.cd-default-input')).toBeNull();
+  });
+
+  it('has a + button to add properties', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    app.selectClassInPanel(cls.id);
+    const addBtn = document.querySelector('.class-diagram-props .cd-add-btn');
+    expect(addBtn).toBeTruthy();
+    expect(addBtn.textContent).toBe('+');
+  });
+
+  it('clicking + adds a new property row', () => {
+    const cls = app.addClass('V62AddPropTest');
+    app.selectClassInPanel(cls.id);
+    const before = document.querySelectorAll('.class-prop-row').length;
+    const addBtn = document.querySelector('.class-diagram-props .cd-add-btn');
+    addBtn.click();
+    const after = document.querySelectorAll('.class-prop-row').length;
+    expect(after).toBe(before + 1);
+  });
+
+  it('delete button removes a property', () => {
+    const cls = app.addClass('V62DelPropTest');
+    cls.properties.push({ name: 'a', type: 'String' }, { name: 'b', type: 'Integer' });
+    app.selectClassInPanel(cls.id);
+    expect(document.querySelectorAll('.class-prop-row').length).toBe(2);
+    document.querySelector('.class-prop-row .cd-delete-btn').click();
+    expect(cls.properties.length).toBe(1);
+  });
+
+  it('type dropdown changes property type', () => {
+    const cls = app.addClass('V62TypeTest');
+    cls.properties.push({ name: 'x', type: 'String' });
+    app.selectClassInPanel(cls.id);
+    const select = document.querySelector('.class-prop-row .cd-type-select');
+    select.value = 'Integer';
+    select.dispatchEvent(new Event('change'));
+    expect(cls.properties[0].type).toBe('Integer');
+  });
+});
+
+describe('V62: Methods section in class diagram', () => {
+  it('auto-generated sound methods appear in methods compartment', () => {
+    const cls = app.addClass('V62SoundTest');
+    cls.properties.push({ name: 'sfx', type: 'Sound' });
+    app.selectClassInPanel(cls.id);
+    const rows = document.querySelectorAll('.class-method-row');
+    expect(rows.length).toBe(3);
+    expect(rows[0].textContent).toContain('SfxPlay()');
+    expect(rows[1].textContent).toContain('SfxPause()');
+    expect(rows[2].textContent).toContain('SfxSetLooping(boolean)');
+  });
+
+  it('explicit class methods are editable', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sprite');
+    app.selectClassInPanel(cls.id);
+    const sigInputs = document.querySelectorAll('.class-method-row .cd-method-sig');
+    // Sprite has explicit "move()" method
+    expect(sigInputs.length).toBeGreaterThanOrEqual(1);
+    expect(sigInputs[0].value).toBe('move()');
+  });
+
+  it('has a + button to add methods', () => {
+    const cls = app.S.classes.find(c => c.name === 'Game');
+    app.selectClassInPanel(cls.id);
+    const addBtn = document.getElementById('btn-add-method');
+    expect(addBtn).toBeTruthy();
+  });
+
+  it('clicking + adds a new method', () => {
+    const cls = app.addClass('V62AddMethodTest');
+    app.selectClassInPanel(cls.id);
+    const addBtn = document.getElementById('btn-add-method');
+    addBtn.click();
+    expect(cls.methods.length).toBe(1);
+    expect(cls.methods[0].signature).toBe('newMethod()');
+    const rows = document.querySelectorAll('.class-method-row');
+    expect(rows.length).toBe(1);
+  });
+
+  it('delete button removes an explicit method', () => {
+    const cls = app.addClass('V62DelMethodTest');
+    cls.methods = [{ name: 'foo', signature: 'foo()' }];
+    app.selectClassInPanel(cls.id);
+    const delBtn = document.querySelector('.class-method-row .cd-delete-btn');
+    delBtn.click();
+    expect(cls.methods.length).toBe(0);
+  });
+
+  it('return value checkbox adds return type', () => {
+    const cls = app.addClass('V62RetTest');
+    cls.methods = [{ name: 'calc', signature: 'calc()' }];
+    app.selectClassInPanel(cls.id);
+    const retCb = document.querySelector('.cd-return-cb');
+    retCb.checked = true;
+    retCb.dispatchEvent(new Event('change'));
+    expect(cls.methods[0].returnType).toBe('String');
+  });
+});
+
+describe('V62: Default value toggle', () => {
+  it('checking default checkbox enables inline value and re-renders', () => {
+    const cls = app.addClass('V62DefToggle');
+    cls.properties.push({ name: 'x', type: 'Integer' });
+    app.selectClassInPanel(cls.id);
+    const defCb = document.querySelector('.cd-default-cb');
+    expect(defCb.checked).toBe(false);
+    defCb.checked = true;
+    defCb.dispatchEvent(new Event('change'));
+    // After re-render, default input should appear
+    const defInput = document.querySelector('.cd-default-input');
+    expect(defInput).toBeTruthy();
+    expect(cls.properties[0].defaultValue).toBe('');
+  });
+
+  it('unchecking default checkbox removes default value', () => {
+    const cls = app.addClass('V62DefUncheck');
+    cls.properties.push({ name: 'y', type: 'Real', defaultValue: '42' });
+    app.selectClassInPanel(cls.id);
+    const defCb = document.querySelector('.cd-default-cb');
+    expect(defCb.checked).toBe(true);
+    defCb.checked = false;
+    defCb.dispatchEvent(new Event('change'));
+    expect(cls.properties[0].defaultValue).toBeUndefined();
   });
 });

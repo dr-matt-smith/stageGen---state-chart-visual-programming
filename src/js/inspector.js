@@ -52,7 +52,15 @@ function setPropsRows(rows) {
   }
 }
 
+function removeClassDiagram() {
+  const existing = inspectorBody.querySelector('#class-diagram');
+  if (existing) existing.remove();
+  const chartOpt = inspectorBody.querySelector('.class-diagram-chart-option');
+  if (chartOpt) chartOpt.remove();
+}
+
 function showEmpty() {
+  removeClassDiagram();
   emptyMsg.style.display = 'block';
   propsContainer.style.display = 'none';
   tbody.innerHTML = '';
@@ -84,6 +92,7 @@ export function updateInspector() {
 // ── Node inspector ───────────────────────────────────────────────────────────
 
 function renderNodeInspector(n) {
+  removeClassDiagram();
   emptyMsg.style.display = 'none';
   propsContainer.style.display = '';
   tbody.innerHTML = '';
@@ -190,6 +199,7 @@ function renderBehaviourSection(title, behaviours, isMainHeader) {
 // ── Connection inspector ─────────────────────────────────────────────────────
 
 function renderConnInspector(c) {
+  removeClassDiagram();
   emptyMsg.style.display = 'none';
   propsContainer.style.display = '';
   tbody.innerHTML = '';
@@ -396,6 +406,7 @@ function renderObjectPropsInspector(objId) {
   if (!obj) { showEmpty(); return; }
   const cls = S.classes.find(c => c.id === obj.classId);
 
+  removeClassDiagram();
   emptyMsg.style.display = 'none';
   propsContainer.style.display = '';
   tbody.innerHTML = '';
@@ -555,44 +566,53 @@ function showDeleteChartConfirm(cls, classId, checkbox) {
   document.addEventListener('keydown', escHandler);
 }
 
-// ── Class inspector ─────────────────────────────────────────────────────────
+// ── Class inspector (V62: class-diagram style) ─────────────────────────────
 
 function renderClassInspector(classId) {
   const cls = S.classes.find(c => c.id === classId);
   if (!cls) { showEmpty(); return; }
 
+  removeClassDiagram();
   emptyMsg.style.display = 'none';
-  propsContainer.style.display = '';
+  propsContainer.style.display = 'none';
   tbody.innerHTML = '';
 
-  // Class name (editable)
-  const nameRow = document.createElement('tr');
-  nameRow.innerHTML = `<td>Name</td><td></td>`;
+  // Build a class-diagram container instead of using the table
+  const diagram = document.createElement('div');
+  diagram.className = 'class-diagram';
+  diagram.id = 'class-diagram';
+
+  // ── Compartment 1: Class name ──
+  const nameComp = document.createElement('div');
+  nameComp.className = 'class-diagram-compartment class-diagram-name';
+  const classLabel = document.createElement('span');
+  classLabel.className = 'class-diagram-label';
+  classLabel.textContent = 'Class:';
+  nameComp.appendChild(classLabel);
   const nameInput = document.createElement('input');
   nameInput.type = 'text';
-  nameInput.className = 'inspector-input';
+  nameInput.className = 'class-diagram-name-input';
+  nameInput.id = 'class-name-input';
   nameInput.value = cls.name;
   nameInput.addEventListener('input', () => {
     const val = nameInput.value.trim();
     if (val) { cls.name = val; notifyLeftPanel(); }
   });
   nameInput.addEventListener('keydown', (e) => e.stopPropagation());
-  nameRow.cells[1].appendChild(nameInput);
-  tbody.appendChild(nameRow);
+  nameComp.appendChild(nameInput);
+  diagram.appendChild(nameComp);
 
-  // V61: hasStateChart checkbox
-  const chartRow = document.createElement('tr');
-  chartRow.innerHTML = `<td>Has State Chart</td><td></td>`;
+  // V61: hasStateChart checkbox (below name compartment, outside diagram box)
+  const chartRow = document.createElement('div');
+  chartRow.className = 'class-diagram-chart-option';
   const chartCb = document.createElement('input');
   chartCb.type = 'checkbox';
   chartCb.id = 'has-state-chart-cb';
   chartCb.checked = cls.hasStateChart !== false;
   chartCb.addEventListener('change', () => {
     if (!chartCb.checked) {
-      // Check if class has existing state chart data
       const classNodes = cls.id === S.activeClassId ? S.nodes : cls.nodes;
       if (classNodes && classNodes.length > 0) {
-        // Show confirmation dialog
         showDeleteChartConfirm(cls, classId, chartCb);
         return;
       }
@@ -606,53 +626,47 @@ function renderClassInspector(classId) {
       notifyLeftPanel();
     }
   });
-  chartRow.cells[1].appendChild(chartCb);
-  tbody.appendChild(chartRow);
+  const chartLabel = document.createElement('label');
+  chartLabel.className = 'class-diagram-chart-label';
+  chartLabel.appendChild(chartCb);
+  chartLabel.appendChild(document.createTextNode(' Has State Chart'));
+  chartRow.appendChild(chartLabel);
 
-  // Section header for properties
-  const headerRow = document.createElement('tr');
-  headerRow.innerHTML = `<td colspan="2" style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.05em;padding-top:12px;">Properties</td>`;
-  tbody.appendChild(headerRow);
+  // ── Compartment 2: Properties ──
+  const propsComp = document.createElement('div');
+  propsComp.className = 'class-diagram-compartment class-diagram-props';
 
-  // Existing properties — each property is a block with stacked rows
+  // Column headers
+  const propsHeader = document.createElement('div');
+  propsHeader.className = 'class-diagram-row class-diagram-col-headers';
+  propsHeader.innerHTML = '<span class="cd-col-main"></span><span class="cd-col-default">default</span><span class="cd-col-delete">delete</span>';
+  propsComp.appendChild(propsHeader);
+
   for (let i = 0; i < cls.properties.length; i++) {
     const prop = cls.properties[i];
-    const tr = document.createElement('tr');
-    tr.className = 'class-prop-row';
-    const td = document.createElement('td');
-    td.colSpan = 2;
+    const row = document.createElement('div');
+    row.className = 'class-diagram-row class-prop-row';
 
-    // Row 1: property name (full width) + delete button
-    const row1 = document.createElement('div');
-    row1.className = 'prop-row-line';
+    // Main content: name: TypeDropdown [= default]
+    const main = document.createElement('span');
+    main.className = 'cd-col-main';
 
     const propNameInput = document.createElement('input');
     propNameInput.type = 'text';
-    propNameInput.className = 'inspector-input prop-name-input';
-    propNameInput.placeholder = 'property name';
+    propNameInput.className = 'cd-prop-name';
+    propNameInput.placeholder = 'name';
     propNameInput.value = prop.name;
     propNameInput.addEventListener('input', () => { prop.name = propNameInput.value.trim(); });
     propNameInput.addEventListener('keydown', (e) => e.stopPropagation());
-    row1.appendChild(propNameInput);
+    main.appendChild(propNameInput);
 
-    const delBtn = document.createElement('button');
-    delBtn.className = 'inspector-delete-btn';
-    delBtn.textContent = '\u00d7';
-    delBtn.title = 'Delete property';
-    delBtn.addEventListener('click', () => {
-      cls.properties.splice(i, 1);
-      renderClassInspector(classId);
-    });
-    row1.appendChild(delBtn);
-
-    td.appendChild(row1);
-
-    // Row 2: type dropdown (full width)
-    const row2 = document.createElement('div');
-    row2.className = 'prop-row-line prop-sub-row';
+    const colonSpan = document.createElement('span');
+    colonSpan.className = 'cd-colon';
+    colonSpan.textContent = ':';
+    main.appendChild(colonSpan);
 
     const typeSelect = document.createElement('select');
-    typeSelect.className = 'inspector-select prop-type-select';
+    typeSelect.className = 'cd-type-select';
     for (const t of PROPERTY_TYPES) {
       const opt = document.createElement('option');
       opt.value = t;
@@ -666,21 +680,12 @@ function renderClassInspector(classId) {
       renderClassInspector(classId);
     });
     typeSelect.addEventListener('keydown', (e) => e.stopPropagation());
-    row2.appendChild(typeSelect);
+    main.appendChild(typeSelect);
 
-    td.appendChild(row2);
-
-    // Row 2: EnumClass sub-dropdown (if applicable)
+    // EnumClass sub-selector
     if (prop.type === 'EnumClass') {
-      const enumRow = document.createElement('div');
-      enumRow.className = 'prop-row-line prop-sub-row';
-      const enumLabel = document.createElement('span');
-      enumLabel.className = 'prop-sub-label';
-      enumLabel.textContent = 'Enum:';
-      enumRow.appendChild(enumLabel);
       const enumSelect = document.createElement('select');
-      enumSelect.className = 'inspector-select';
-      enumSelect.style.flex = '1';
+      enumSelect.className = 'cd-type-select cd-enum-select';
       for (const en of S.enumClasses) {
         const opt = document.createElement('option');
         opt.value = en.id; opt.textContent = en.name;
@@ -689,67 +694,196 @@ function renderClassInspector(classId) {
       }
       enumSelect.addEventListener('change', () => { prop.enumClassId = Number(enumSelect.value); });
       enumSelect.addEventListener('keydown', (e) => e.stopPropagation());
-      enumRow.appendChild(enumSelect);
-      td.appendChild(enumRow);
+      main.appendChild(enumSelect);
     }
 
-    // Row 3: Default value (checkbox + input)
-    const defRow = document.createElement('div');
-    defRow.className = 'prop-row-line prop-sub-row';
+    // Default value display (inline = value)
+    if (prop.defaultValue !== undefined) {
+      const eqSpan = document.createElement('span');
+      eqSpan.className = 'cd-equals';
+      eqSpan.textContent = '=';
+      main.appendChild(eqSpan);
+      const defInput = document.createElement('input');
+      defInput.type = 'text';
+      defInput.className = 'cd-default-input';
+      defInput.value = prop.defaultValue;
+      defInput.addEventListener('input', () => { prop.defaultValue = defInput.value; });
+      defInput.addEventListener('keydown', (e) => e.stopPropagation());
+      main.appendChild(defInput);
+    }
+
+    row.appendChild(main);
+
+    // Default checkbox column
+    const defCol = document.createElement('span');
+    defCol.className = 'cd-col-default';
     const defCb = document.createElement('input');
     defCb.type = 'checkbox';
-    defCb.checked = !!prop.defaultValue;
+    defCb.className = 'cd-default-cb';
+    defCb.checked = prop.defaultValue !== undefined;
     defCb.title = 'Has default value';
-    defRow.appendChild(defCb);
-    const defLabel = document.createElement('span');
-    defLabel.className = 'prop-sub-label';
-    defLabel.textContent = 'default:';
-    defRow.appendChild(defLabel);
-
-    const defInput = document.createElement('input');
-    defInput.type = 'text';
-    defInput.className = 'inspector-input';
-    defInput.style.flex = '1';
-    defInput.value = prop.defaultValue || '';
-    defInput.style.display = defCb.checked ? '' : 'none';
-    defInput.addEventListener('input', () => { prop.defaultValue = defInput.value; });
-    defInput.addEventListener('keydown', (e) => e.stopPropagation());
-    defRow.appendChild(defInput);
-
     defCb.addEventListener('change', () => {
       if (defCb.checked) {
-        defInput.style.display = '';
-        prop.defaultValue = defInput.value || '';
+        prop.defaultValue = prop.defaultValue || '';
       } else {
-        defInput.style.display = 'none';
         delete prop.defaultValue;
       }
+      renderClassInspector(classId);
     });
+    defCol.appendChild(defCb);
+    row.appendChild(defCol);
 
-    td.appendChild(defRow);
-    tr.appendChild(td);
-    tbody.appendChild(tr);
+    // Delete button column
+    const delCol = document.createElement('span');
+    delCol.className = 'cd-col-delete';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'cd-delete-btn';
+    delBtn.textContent = '\u2716';
+    delBtn.title = 'Delete property';
+    delBtn.addEventListener('click', () => {
+      cls.properties.splice(i, 1);
+      renderClassInspector(classId);
+    });
+    delCol.appendChild(delBtn);
+    row.appendChild(delCol);
+
+    propsComp.appendChild(row);
   }
 
-  // Add property button
-  const addRow = document.createElement('tr');
-  const addTd = document.createElement('td');
-  addTd.colSpan = 2;
-  const addBtn = document.createElement('button');
-  addBtn.className = 'toolbar-btn';
-  addBtn.textContent = '+ Add Property';
-  addBtn.style.fontSize = '11px';
-  addBtn.style.marginTop = '6px';
-  addBtn.addEventListener('click', () => {
+  // Add property button row
+  const addPropRow = document.createElement('div');
+  addPropRow.className = 'class-diagram-row cd-add-row';
+  const addPropBtn = document.createElement('button');
+  addPropBtn.className = 'cd-add-btn';
+  addPropBtn.textContent = '+';
+  addPropBtn.title = 'Add property';
+  addPropBtn.addEventListener('click', () => {
     cls.properties.push({ name: 'newProp', type: 'String' });
     renderClassInspector(classId);
   });
-  addTd.appendChild(addBtn);
-  addRow.appendChild(addTd);
-  tbody.appendChild(addRow);
+  addPropRow.appendChild(addPropBtn);
+  propsComp.appendChild(addPropRow);
 
-  // All methods: explicit class methods + auto-generated sound methods
-  renderMethodsSection(cls);
+  diagram.appendChild(propsComp);
+
+  // ── Compartment 3: Methods ──
+  const methodsComp = document.createElement('div');
+  methodsComp.className = 'class-diagram-compartment class-diagram-methods';
+
+  const explicit = cls.methods || [];
+  const sound = getSoundMethods(cls);
+  const allMethods = [...explicit, ...sound];
+
+  if (allMethods.length > 0) {
+    // Column headers
+    const methHeader = document.createElement('div');
+    methHeader.className = 'class-diagram-row class-diagram-col-headers';
+    methHeader.innerHTML = '<span class="cd-col-main"></span><span class="cd-col-default">return<br>value</span><span class="cd-col-delete">delete</span>';
+    methodsComp.appendChild(methHeader);
+  }
+
+  for (let i = 0; i < allMethods.length; i++) {
+    const m = allMethods[i];
+    const isExplicit = i < explicit.length;
+    const row = document.createElement('div');
+    row.className = 'class-diagram-row class-method-row';
+
+    const main = document.createElement('span');
+    main.className = 'cd-col-main';
+
+    if (isExplicit) {
+      const sigInput = document.createElement('input');
+      sigInput.type = 'text';
+      sigInput.className = 'cd-method-sig';
+      sigInput.value = m.signature;
+      sigInput.addEventListener('input', () => { explicit[i].signature = sigInput.value; });
+      sigInput.addEventListener('keydown', (e) => e.stopPropagation());
+      main.appendChild(sigInput);
+
+      // Return type (inline)
+      if (m.returnType) {
+        const colonSpan = document.createElement('span');
+        colonSpan.className = 'cd-colon';
+        colonSpan.textContent = ':';
+        main.appendChild(colonSpan);
+        const retInput = document.createElement('input');
+        retInput.type = 'text';
+        retInput.className = 'cd-return-input';
+        retInput.value = m.returnType;
+        retInput.addEventListener('input', () => { explicit[i].returnType = retInput.value; });
+        retInput.addEventListener('keydown', (e) => e.stopPropagation());
+        main.appendChild(retInput);
+      }
+    } else {
+      // Auto-generated sound method (read-only)
+      const sigSpan = document.createElement('code');
+      sigSpan.className = 'method-signature';
+      sigSpan.textContent = m.signature;
+      main.appendChild(sigSpan);
+    }
+
+    row.appendChild(main);
+
+    // Return value checkbox column
+    const retCol = document.createElement('span');
+    retCol.className = 'cd-col-default';
+    if (isExplicit) {
+      const retCb = document.createElement('input');
+      retCb.type = 'checkbox';
+      retCb.className = 'cd-return-cb';
+      retCb.checked = !!m.returnType;
+      retCb.title = 'Has return value';
+      retCb.addEventListener('change', () => {
+        if (retCb.checked) {
+          explicit[i].returnType = explicit[i].returnType || 'String';
+        } else {
+          delete explicit[i].returnType;
+        }
+        renderClassInspector(classId);
+      });
+      retCol.appendChild(retCb);
+    }
+    row.appendChild(retCol);
+
+    // Delete column
+    const delCol = document.createElement('span');
+    delCol.className = 'cd-col-delete';
+    if (isExplicit) {
+      const delBtn = document.createElement('button');
+      delBtn.className = 'cd-delete-btn';
+      delBtn.textContent = '\u2716';
+      delBtn.title = 'Delete method';
+      delBtn.addEventListener('click', () => {
+        cls.methods.splice(i, 1);
+        renderClassInspector(classId);
+      });
+      delCol.appendChild(delBtn);
+    }
+    row.appendChild(delCol);
+
+    methodsComp.appendChild(row);
+  }
+
+  // Add method button row
+  const addMethodRow = document.createElement('div');
+  addMethodRow.className = 'class-diagram-row cd-add-row';
+  const addMethodBtn = document.createElement('button');
+  addMethodBtn.className = 'cd-add-btn';
+  addMethodBtn.id = 'btn-add-method';
+  addMethodBtn.textContent = '+';
+  addMethodBtn.title = 'Add method';
+  addMethodBtn.addEventListener('click', () => {
+    if (!cls.methods) cls.methods = [];
+    cls.methods.push({ name: 'newMethod', signature: 'newMethod()' });
+    renderClassInspector(classId);
+  });
+  addMethodRow.appendChild(addMethodBtn);
+  methodsComp.appendChild(addMethodRow);
+
+  diagram.appendChild(methodsComp);
+
+  inspectorBody.appendChild(diagram);
+  inspectorBody.appendChild(chartRow);
 }
 
 // ── Sound methods (auto-generated) ──────────────────────────────────────────
@@ -772,34 +906,13 @@ export function getSoundMethods(cls) {
   return methods;
 }
 
-function renderMethodsSection(cls) {
-  // Combine explicit class methods + auto-generated sound methods
-  const explicit = (cls.methods || []).map(m => ({ signature: m.signature, description: m.description }));
-  const sound = getSoundMethods(cls);
-  const all = [...explicit, ...sound];
-  if (all.length === 0) return;
-
-  const headerRow = document.createElement('tr');
-  headerRow.innerHTML = `<td colspan="2" style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.05em;padding-top:12px;">Methods</td>`;
-  tbody.appendChild(headerRow);
-
-  for (const m of all) {
-    const tr = document.createElement('tr');
-    tr.className = 'sound-method-row';
-    const sigTd = document.createElement('td');
-    sigTd.colSpan = 2;
-    sigTd.innerHTML = `<code class="method-signature">${escapeHtml(m.signature)}</code><span class="method-desc">${escapeHtml(m.description)}</span>`;
-    tr.appendChild(sigTd);
-    tbody.appendChild(tr);
-  }
-}
-
 // ── Enum class inspector ────────────────────────────────────────────────────
 
 function renderEnumInspector(enumId) {
   const en = S.enumClasses.find(e => e.id === enumId);
   if (!en) { showEmpty(); return; }
 
+  removeClassDiagram();
   emptyMsg.style.display = 'none';
   propsContainer.style.display = '';
   tbody.innerHTML = '';

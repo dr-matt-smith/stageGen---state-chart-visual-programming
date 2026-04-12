@@ -709,8 +709,8 @@ test.describe('Inspector clears on deselect/delete', () => {
 
     await page.locator('.node-delete-handle').click();
     await expect(page.locator('.state-node')).toHaveCount(0);
-    // In class edit mode, inspector shows class properties after deselection
-    await expect(page.locator('#inspector-props')).toBeVisible();
+    // V62: In class edit mode, inspector shows class diagram after deselection
+    await expect(page.locator('#class-diagram')).toBeVisible();
   });
 
   test('inspector reverts to class view when node is deselected', async ({ page }) => {
@@ -722,8 +722,8 @@ test.describe('Inspector clears on deselect/delete', () => {
     const canvas = page.locator('#canvas-container');
     const box = await canvas.boundingBox();
     await page.mouse.click(box.x + 5, box.y + 5);
-    // In class edit mode, inspector shows class properties (not empty)
-    await expect(page.locator('#inspector-props')).toBeVisible();
+    // V62: In class edit mode, inspector shows class diagram (not empty)
+    await expect(page.locator('#class-diagram')).toBeVisible();
   });
 
   test('inspector shows class view when group of nodes is selected', async ({ page }) => {
@@ -745,8 +745,8 @@ test.describe('Inspector clears on deselect/delete', () => {
     await drag(page, left, top, right, bottom, 15);
 
     await expect(nodeA).toHaveClass(/node-group-selected/);
-    // In class edit mode, inspector shows class properties when no single node selected
-    await expect(page.locator('#inspector-props')).toBeVisible();
+    // V62: In class edit mode, inspector shows class diagram when no single node selected
+    await expect(page.locator('#class-diagram')).toBeVisible();
   });
 });
 
@@ -922,8 +922,9 @@ test.describe('V44: Class inspector', () => {
         break;
       }
     }
-    await expect(page.locator('#inspector-props')).toBeVisible();
-    const inputs = page.locator('#inspector-props input.inspector-input');
+    // V62: class diagram is rendered instead of inspector-props table
+    await expect(page.locator('#class-diagram')).toBeVisible();
+    const inputs = page.locator('#class-diagram input.cd-prop-name');
     const inputCount = await inputs.count();
     expect(inputCount).toBeGreaterThanOrEqual(4);
   });
@@ -932,7 +933,8 @@ test.describe('V44: Class inspector', () => {
     await page.evaluate(() => document.getElementById('classes-header').click());
     await page.locator('#classes-list').waitFor({ state: 'visible' });
     await page.locator('#classes-list .left-panel-item:has-text("Game")').first().click();
-    await expect(page.locator('button:has-text("+ Add Property")')).toBeVisible();
+    // V62: + button replaces "Add Property" button
+    await expect(page.locator('.class-diagram-props .cd-add-btn')).toBeVisible();
   });
 
   test('clicking Add Property adds a new property row', async ({ page }) => {
@@ -940,7 +942,7 @@ test.describe('V44: Class inspector', () => {
     await page.locator('#classes-list').waitFor({ state: 'visible' });
     await page.locator('#classes-list .left-panel-item:has-text("Game")').first().click();
     const beforeRows = await page.locator('.class-prop-row').count();
-    await page.locator('button:has-text("+ Add Property")').click();
+    await page.locator('.class-diagram-props .cd-add-btn').click();
     const afterRows = await page.locator('.class-prop-row').count();
     expect(afterRows).toBe(beforeRows + 1);
   });
@@ -949,7 +951,8 @@ test.describe('V44: Class inspector', () => {
     await page.evaluate(() => document.getElementById('classes-header').click());
     await page.locator('#classes-list').waitFor({ state: 'visible' });
     await page.locator('#classes-list .left-panel-item:has-text("Game")').first().click();
-    const select = page.locator('#inspector-props select.inspector-select').first();
+    // V62: type dropdowns are now cd-type-select inside class-diagram
+    const select = page.locator('#class-diagram select.cd-type-select').first();
     const options = await select.locator('option').allTextContents();
     expect(options).toContain('String');
     expect(options).toContain('Integer');
@@ -1323,7 +1326,8 @@ test.describe('V48: Class CRUD in class mode', () => {
   test('clicking a class in class mode shows its properties in inspector', async ({ page }) => {
     await page.locator('#btn-edit-classes').click();
     await page.locator('#classes-list .left-panel-item:has-text("Game")').first().click();
-    await expect(page.locator('#inspector-props')).toBeVisible();
+    // V62: class diagram is rendered
+    await expect(page.locator('#class-diagram')).toBeVisible();
   });
 
   test('can add an enum class in class mode', async ({ page }) => {
@@ -1348,13 +1352,13 @@ test.describe('V49: Image/Sound property dropdowns', () => {
     await page.locator('#modal-name-input').fill('ImgClass');
     await page.locator('#modal-ok').click();
 
-    // Click the new class, add an Image property
+    // Click the new class, add an Image property via V62 + button
     await page.locator('#classes-list .left-panel-item').last().click();
-    await page.locator('button:has-text("+ Add Property")').click();
+    await page.locator('.class-diagram-props .cd-add-btn').click();
 
-    // Change the new property type to Image
+    // Change the new property type to Image via V62 cd-type-select
     const lastRow = page.locator('.class-prop-row').last();
-    await lastRow.locator('.prop-type-select').selectOption('Image');
+    await lastRow.locator('.cd-type-select').selectOption('Image');
 
     // Create an object of ImgClass
     await page.evaluate(() => document.getElementById('objects-header').click());
@@ -1376,9 +1380,9 @@ test.describe('V49: Image/Sound property dropdowns', () => {
     await page.locator('#modal-ok').click();
 
     await page.locator('#classes-list .left-panel-item').last().click();
-    await page.locator('button:has-text("+ Add Property")').click();
+    await page.locator('.class-diagram-props .cd-add-btn').click();
     const lastRow2 = page.locator('.class-prop-row').last();
-    await lastRow2.locator('.prop-type-select').selectOption('Sound');
+    await lastRow2.locator('.cd-type-select').selectOption('Sound');
 
     await page.evaluate(() => document.getElementById('objects-header').click());
     await addObjectViaForm(page, 'sndObj', 'SndClass');
@@ -1400,9 +1404,9 @@ test.describe('V49: Image/Sound property dropdowns', () => {
     await page.locator('#modal-ok').click();
 
     await page.locator('#classes-list .left-panel-item').last().click();
-    await page.locator('button:has-text("+ Add Property")').click();
+    await page.locator('.class-diagram-props .cd-add-btn').click();
     const lastRow = page.locator('.class-prop-row').last();
-    await lastRow.locator('.prop-type-select').selectOption('Image');
+    await lastRow.locator('.cd-type-select').selectOption('Image');
 
     await page.evaluate(() => document.getElementById('objects-header').click());
     await addObjectViaForm(page, 'imgObj2', 'ImgClass2');
@@ -1428,21 +1432,21 @@ test.describe('V50: Sound methods in class inspector', () => {
     await page.locator('#modal-name-input').fill('AudioClass');
     await page.locator('#modal-ok').click();
 
-    // Click the class, add a Sound property
+    // Click the class, add a Sound property via V62 + button
     await page.locator('#classes-list .left-panel-item').last().click();
-    await page.locator('button:has-text("+ Add Property")').click();
+    await page.locator('.class-diagram-props .cd-add-btn').click();
 
     // Set the name first (before changing type, which re-renders)
     const lastRow = page.locator('.class-prop-row').last();
-    const nameInput = lastRow.locator('input.inspector-input').first();
+    const nameInput = lastRow.locator('input.cd-prop-name');
     await nameInput.fill('music');
 
     // Now change type to Sound (this re-renders the inspector)
-    const typeSelect = page.locator('.class-prop-row').last().locator('select.inspector-select').first();
+    const typeSelect = page.locator('.class-prop-row').last().locator('select.cd-type-select').first();
     await typeSelect.selectOption('Sound');
 
-    // Should see Methods section with 3 sound methods
-    const methodRows = page.locator('.sound-method-row');
+    // V62: sound methods appear as class-method-row in the methods compartment
+    const methodRows = page.locator('.class-method-row');
     await expect(methodRows).toHaveCount(3);
     await expect(methodRows.nth(0)).toContainText('MusicPlay()');
     await expect(methodRows.nth(1)).toContainText('MusicPause()');
@@ -1458,13 +1462,14 @@ test.describe('V50: Sound methods in data panel', () => {
     await page.locator('#modal-name-input').fill('SfxClass');
     await page.locator('#modal-ok').click();
 
+    // V62: use cd-add-btn and cd-type-select
     await page.locator('#classes-list .left-panel-item').last().click();
-    await page.locator('button:has-text("+ Add Property")').click();
+    await page.locator('.class-diagram-props .cd-add-btn').click();
 
     const lastRow = page.locator('.class-prop-row').last();
-    await lastRow.locator('select.inspector-select').first().selectOption('Sound');
+    await lastRow.locator('select.cd-type-select').first().selectOption('Sound');
     const newLastRow = page.locator('.class-prop-row').last();
-    await newLastRow.locator('input.inspector-input').first().fill('fireSound');
+    await newLastRow.locator('input.cd-prop-name').fill('fireSound');
 
     // Switch to object mode, create object of SfxClass
     await page.evaluate(() => document.getElementById('objects-header').click());
@@ -1790,5 +1795,123 @@ test.describe('V61: hasStateChart in serialisation', () => {
     // Game should be true, CSSColor should be false
     expect(data.classes.find(c => c.name === 'Game').hasStateChart).toBe(true);
     expect(data.classes.find(c => c.name === 'CSSColor').hasStateChart).toBe(false);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V62 — Class Diagram look-and-feel for editing class members
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('V62: Class diagram structure', () => {
+  test('selecting a class renders a class-diagram container', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    await expect(page.locator('#class-diagram')).toBeVisible();
+    await expect(page.locator('.class-diagram')).toBeVisible();
+  });
+
+  test('diagram has three compartments', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    await expect(page.locator('.class-diagram-compartment')).toHaveCount(3);
+    await expect(page.locator('.class-diagram-name')).toBeVisible();
+    await expect(page.locator('.class-diagram-props')).toBeVisible();
+    await expect(page.locator('.class-diagram-methods')).toBeVisible();
+  });
+
+  test('name compartment shows editable class name', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    const nameInput = page.locator('#class-name-input');
+    await expect(nameInput).toBeVisible();
+    await expect(nameInput).toHaveValue('Game');
+  });
+
+  test('class diagram removed when switching to object view', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    await expect(page.locator('#class-diagram')).toBeVisible();
+    await enterObjectMode(page);
+    await expect(page.locator('#class-diagram')).toHaveCount(0);
+  });
+});
+
+test.describe('V62: Property rows in class diagram', () => {
+  test('properties show as name: Type format', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    const rows = page.locator('.class-prop-row');
+    await expect(rows).toHaveCount(4); // name, description, category, tickIntervalSeconds
+    // Check first property has name input and type dropdown
+    await expect(rows.first().locator('.cd-prop-name')).toHaveValue('name');
+    await expect(rows.first().locator('.cd-type-select')).toHaveValue('String');
+  });
+
+  test('property with default value shows = value inline', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    // tickIntervalSeconds is the last property (index 3) and has default "0.1"
+    const tickRow = page.locator('.class-prop-row').nth(3);
+    await expect(tickRow.locator('.cd-prop-name')).toHaveValue('tickIntervalSeconds');
+    await expect(tickRow.locator('.cd-default-input')).toHaveValue('0.1');
+    await expect(tickRow.locator('.cd-default-cb')).toBeChecked();
+  });
+
+  test('property without default has unchecked default checkbox', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    // "name" is the first property (index 0)
+    const nameRow = page.locator('.class-prop-row').nth(0);
+    await expect(nameRow.locator('.cd-prop-name')).toHaveValue('name');
+    await expect(nameRow.locator('.cd-default-cb')).not.toBeChecked();
+    await expect(nameRow.locator('.cd-default-input')).toHaveCount(0);
+  });
+
+  test('+ button adds a new property', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    const before = await page.locator('.class-prop-row').count();
+    await page.locator('.class-diagram-props .cd-add-btn').click();
+    await expect(page.locator('.class-prop-row')).toHaveCount(before + 1);
+  });
+
+  test('delete button removes a property', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    const before = await page.locator('.class-prop-row').count();
+    await page.locator('.class-prop-row .cd-delete-btn').first().click();
+    await expect(page.locator('.class-prop-row')).toHaveCount(before - 1);
+  });
+
+  test('type dropdown changes property type', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    const firstRow = page.locator('.class-prop-row').first();
+    await firstRow.locator('.cd-type-select').selectOption('Integer');
+    // After re-render the type should be Integer
+    await expect(page.locator('.class-prop-row').first().locator('.cd-type-select')).toHaveValue('Integer');
+  });
+});
+
+test.describe('V62: Methods section in class diagram', () => {
+  test('Sprite class shows move() method as editable', async ({ page }) => {
+    await enterClassEditMode(page, 'Sprite');
+    const sigInput = page.locator('.class-method-row .cd-method-sig').first();
+    await expect(sigInput).toHaveValue('move()');
+  });
+
+  test('auto-generated sound methods appear for Sound properties', async ({ page }) => {
+    await enterClassEditMode(page, 'Sprite');
+    // Sprite has moveSound: Sound, so 3 auto methods + 1 explicit (move)
+    const methodRows = page.locator('.class-method-row');
+    const count = await methodRows.count();
+    expect(count).toBe(4); // move() + MoveSoundPlay() + MoveSoundPause() + MoveSoundSetLooping(boolean)
+  });
+
+  test('+ button adds a new method', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    const before = await page.locator('.class-method-row').count();
+    await page.locator('#btn-add-method').click();
+    await expect(page.locator('.class-method-row')).toHaveCount(before + 1);
+  });
+});
+
+test.describe('V62: Column headers', () => {
+  test('properties section has default and delete column headers', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    const headers = page.locator('.class-diagram-props .class-diagram-col-headers');
+    await expect(headers).toBeVisible();
+    await expect(headers.locator('.cd-col-default')).toContainText('default');
+    await expect(headers.locator('.cd-col-delete')).toContainText('delete');
   });
 });

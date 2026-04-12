@@ -397,3 +397,20 @@ Version 61 features - State Chart option for Classes
 - ✅ and add Vitest and Playwright tests for all features implemented
 - ✅ 226 Vitest unit tests passing (17 new V61 tests)
 - ✅ 159 Playwright e2e tests passing (11 new V61 tests)
+
+
+Version 62 features - Class Diagram look-and-feel for editing class members
+==================
+
+- ✅ when a Class is being CRUDed, make the Inspector look like a class diagram rectangle
+  - ✅ see /screenshots/class_diagram.png
+    - row 1: class name
+    - row 2: properties
+    - row 3: methods
+  - ✅ NOTE: Ignore visibility (assume all members are public, but you don't need to add the "+" visibility modifier to the editor
+  - ✅ except the data type is a dropdown menu,
+  - ✅ the user only needs to add a default value if the default value checkbox is clicked, likewise for method return value
+
+- ✅ and add Vitest and Playwright tests for all features implemented
+- ✅ 246 Vitest unit tests passing (20 new V62 tests)
+- ✅ 173 Playwright e2e tests passing (14 new V62 tests)
