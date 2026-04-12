@@ -1679,3 +1679,116 @@ test.describe('V54: Build button', () => {
     expect(download.suggestedFilename()).toContain('.zip');
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V61 — State Chart option for Classes (hasStateChart boolean)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('V61: hasStateChart checkbox in class inspector', () => {
+  test('checkbox appears when inspecting a class', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    await expect(page.locator('#has-state-chart-cb')).toBeVisible();
+  });
+
+  test('Game class checkbox is checked by default', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    await expect(page.locator('#has-state-chart-cb')).toBeChecked();
+  });
+
+  test('CSSColor class checkbox is unchecked', async ({ page }) => {
+    await enterClassEditMode(page, 'CSSColor');
+    await expect(page.locator('#has-state-chart-cb')).not.toBeChecked();
+  });
+
+  test('Stage class checkbox is unchecked', async ({ page }) => {
+    await enterClassEditMode(page, 'Stage');
+    await expect(page.locator('#has-state-chart-cb')).not.toBeChecked();
+  });
+});
+
+test.describe('V61: hasStateChart controls state chart editing', () => {
+  test('state toolbar disabled when hasStateChart is false', async ({ page }) => {
+    await enterClassEditMode(page, 'CSSColor');
+    await expect(page.locator('#state-toolbar')).toHaveClass(/disabled/);
+  });
+
+  test('state toolbar enabled when hasStateChart is true', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    await expect(page.locator('#state-toolbar')).not.toHaveClass(/disabled/);
+  });
+
+  test('unchecking hasStateChart on empty class disables toolbar', async ({ page }) => {
+    // Create a new class
+    await enterClassEditMode(page, 'Game');
+    await page.locator('#btn-add-class').click();
+    await page.locator('#modal-name-input').fill('V61E2ETest');
+    await page.locator('#modal-ok').click();
+    // Select the new class
+    await page.locator('#classes-list .left-panel-item:has-text("V61E2ETest")').first().click();
+    await expect(page.locator('#has-state-chart-cb')).toBeChecked();
+    // Uncheck
+    await page.locator('#has-state-chart-cb').uncheck();
+    await expect(page.locator('#state-toolbar')).toHaveClass(/disabled/);
+  });
+});
+
+test.describe('V61: Delete state chart confirmation dialog', () => {
+  test('dialog appears when unchecking on class with nodes', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    // Add a state node
+    await dragNewNode(page, '#btn-new-state');
+    await expect(page.locator('.state-node')).toHaveCount(1);
+    // Click the checkbox to trigger uncheck attempt
+    await page.locator('#has-state-chart-cb').click({ force: true });
+    // Dialog should appear
+    await expect(page.locator('#delete-chart-dialog')).toBeVisible();
+    // Clean up — cancel to dismiss
+    await page.locator('#delete-chart-dialog button:has-text("Cancel")').click();
+  });
+
+  test('cancel button in dialog keeps state chart', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    await dragNewNode(page, '#btn-new-state');
+    await page.locator('#has-state-chart-cb').click({ force: true });
+    await expect(page.locator('#delete-chart-dialog')).toBeVisible();
+    // Cancel
+    await page.locator('#delete-chart-dialog button:has-text("Cancel")').click();
+    await expect(page.locator('#delete-chart-dialog')).not.toBeVisible();
+    // Checkbox should still be checked
+    await expect(page.locator('#has-state-chart-cb')).toBeChecked();
+    // Node should still exist
+    await expect(page.locator('.state-node')).toHaveCount(1);
+  });
+
+  test('delete button removes chart and unchecks', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    await dragNewNode(page, '#btn-new-state');
+    await page.locator('#has-state-chart-cb').click({ force: true });
+    await expect(page.locator('#delete-chart-dialog')).toBeVisible();
+    // Click delete
+    await page.locator('#confirm-delete-chart').click();
+    await expect(page.locator('#delete-chart-dialog')).not.toBeVisible();
+    // Nodes should be gone
+    await expect(page.locator('.state-node')).toHaveCount(0);
+    // Checkbox should be unchecked
+    await expect(page.locator('#has-state-chart-cb')).not.toBeChecked();
+    // Toolbar should be disabled
+    await expect(page.locator('#state-toolbar')).toHaveClass(/disabled/);
+  });
+});
+
+test.describe('V61: hasStateChart in serialisation', () => {
+  test('exported JSON includes hasStateChart for all classes', async ({ page }) => {
+    // Click export
+    await page.locator('#btn-export-json').click();
+    await expect(page.locator('#json-modal')).toBeVisible();
+    const json = await page.locator('#json-modal pre').textContent();
+    const data = JSON.parse(json);
+    for (const cls of data.classes) {
+      expect(typeof cls.hasStateChart).toBe('boolean');
+    }
+    // Game should be true, CSSColor should be false
+    expect(data.classes.find(c => c.name === 'Game').hasStateChart).toBe(true);
+    expect(data.classes.find(c => c.name === 'CSSColor').hasStateChart).toBe(false);
+  });
+});

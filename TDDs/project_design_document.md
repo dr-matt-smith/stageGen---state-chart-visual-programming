@@ -384,3 +384,16 @@ Version 60 features - UI tidyup
 - ✅ Updated all Vitest and Playwright tests for new UI structure
 - ✅ 209 Vitest unit tests passing
 - ✅ 148 Playwright e2e tests passing
+
+Version 61 features - State Chart option for Classes
+==================
+
+- ✅ add a property for classes for whether it can have an associated State Chart Diagram
+  - ✅ Boolean hasStateChart
+    - if this property is NOT checked, the no state chart can be created for this class
+    - if the user attempts to uncheck this property , and there is a state chart associated with the class, popup a message saying that the existing state chart has to be removed before the property can be unchecked
+      - ✅ give them a delete existing state chart as one option (not default) in the popup message window
+
+- ✅ and add Vitest and Playwright tests for all features implemented
+- ✅ 226 Vitest unit tests passing (17 new V61 tests)
+- ✅ 159 Playwright e2e tests passing (11 new V61 tests)

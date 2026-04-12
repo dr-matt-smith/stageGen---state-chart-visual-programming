@@ -1956,3 +1956,159 @@ describe('V59: Serialisation stores charts on classes', () => {
     }
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V61 — State Chart option for Classes (hasStateChart boolean)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V61: hasStateChart property on classes', () => {
+  it('built-in Game class has hasStateChart true', () => {
+    const game = app.S.classes.find(c => c.name === 'Game');
+    expect(game.hasStateChart).toBe(true);
+  });
+
+  it('built-in Sprite class has hasStateChart true', () => {
+    const sprite = app.S.classes.find(c => c.name === 'Sprite');
+    expect(sprite.hasStateChart).toBe(true);
+  });
+
+  it('built-in CSSColor class has hasStateChart false', () => {
+    const css = app.S.classes.find(c => c.name === 'CSSColor');
+    expect(css.hasStateChart).toBe(false);
+  });
+
+  it('built-in Stage class has hasStateChart false', () => {
+    const stage = app.S.classes.find(c => c.name === 'Stage');
+    expect(stage.hasStateChart).toBe(false);
+  });
+
+  it('new classes created via addClass default to hasStateChart true', () => {
+    const cls = app.addClass('V61TestA');
+    expect(cls.hasStateChart).toBe(true);
+  });
+});
+
+describe('V61: hasStateChart controls editing', () => {
+  it('selectClassInPanel sets editingClassChart true when hasStateChart is true', () => {
+    const cls = app.S.classes.find(c => c.name === 'V61TestA') || app.addClass('V61TestB');
+    cls.hasStateChart = true;
+    app.selectClassInPanel(cls.id);
+    expect(app.S.editingClassChart).toBe(true);
+  });
+
+  it('selectClassInPanel sets editingClassChart false when hasStateChart is false', () => {
+    const cls = app.S.classes.find(c => c.name === 'V61TestA') || app.addClass('V61TestC');
+    cls.hasStateChart = false;
+    app.selectClassInPanel(cls.id);
+    expect(app.S.editingClassChart).toBe(false);
+  });
+
+  it('state toolbar is disabled when hasStateChart is false', () => {
+    const cls = app.S.classes.find(c => c.name === 'V61TestA') || app.addClass('V61TestD');
+    cls.hasStateChart = false;
+    app.selectClassInPanel(cls.id);
+    const stateToolbar = document.getElementById('state-toolbar');
+    expect(stateToolbar.classList.contains('disabled')).toBe(true);
+  });
+
+  it('state toolbar is enabled when hasStateChart is true', () => {
+    const cls = app.S.classes.find(c => c.name === 'V61TestA') || app.addClass('V61TestE');
+    cls.hasStateChart = true;
+    app.selectClassInPanel(cls.id);
+    const stateToolbar = document.getElementById('state-toolbar');
+    expect(stateToolbar.classList.contains('disabled')).toBe(false);
+  });
+});
+
+describe('V61: hasStateChart in serialisation', () => {
+  it('serialised classes include hasStateChart property', () => {
+    const json = app.serialiseDiagram();
+    for (const cls of json.classes) {
+      expect(typeof cls.hasStateChart).toBe('boolean');
+    }
+  });
+
+  it('serialised Game class has hasStateChart true', () => {
+    const json = app.serialiseDiagram();
+    const game = json.classes.find(c => c.name === 'Game');
+    expect(game.hasStateChart).toBe(true);
+  });
+
+  it('serialised CSSColor class has hasStateChart false', () => {
+    const json = app.serialiseDiagram();
+    const css = json.classes.find(c => c.name === 'CSSColor');
+    expect(css.hasStateChart).toBe(false);
+  });
+});
+
+describe('V61: hasStateChart checkbox in class inspector', () => {
+  it('checkbox appears when inspecting a class', () => {
+    const cls = app.S.classes.find(c => c.name === 'V61TestA') || app.addClass('V61InspTest');
+    app.selectClassInPanel(cls.id);
+    app.updateInspector();
+    const cb = document.getElementById('has-state-chart-cb');
+    expect(cb).toBeTruthy();
+    expect(cb.type).toBe('checkbox');
+  });
+
+  it('checkbox reflects hasStateChart value', () => {
+    const cls = app.S.classes.find(c => c.name === 'V61TestA') || app.addClass('V61InspTest2');
+    cls.hasStateChart = false;
+    app.selectClassInPanel(cls.id);
+    app.updateInspector();
+    const cb = document.getElementById('has-state-chart-cb');
+    expect(cb.checked).toBe(false);
+  });
+
+  it('unchecking on class with no nodes updates hasStateChart to false', () => {
+    const cls = app.addClass('V61NoNodes');
+    cls.hasStateChart = true;
+    cls.nodes = [];
+    app.selectClassInPanel(cls.id);
+    app.updateInspector();
+    const cb = document.getElementById('has-state-chart-cb');
+    cb.checked = false;
+    cb.dispatchEvent(new Event('change'));
+    expect(cls.hasStateChart).toBe(false);
+  });
+
+  it('unchecking on class WITH nodes shows confirmation dialog', () => {
+    const cls = app.addClass('V61WithNodes');
+    cls.hasStateChart = true;
+    app.selectClassInPanel(cls.id);
+    app.createNode('state', 100, 100);
+    app.saveActiveClassChart();
+    app.updateInspector();
+    const cb = document.getElementById('has-state-chart-cb');
+    cb.checked = false;
+    cb.dispatchEvent(new Event('change'));
+    // Dialog should appear
+    const dialog = document.getElementById('delete-chart-dialog');
+    expect(dialog).toBeTruthy();
+    // Checkbox should be reverted to checked
+    expect(cb.checked).toBe(true);
+    // Clean up dialog
+    const overlay = document.getElementById('delete-chart-overlay');
+    if (overlay) overlay.remove();
+  });
+
+  it('confirming delete in dialog clears nodes and sets hasStateChart false', () => {
+    const cls = app.addClass('V61DeleteTest');
+    cls.hasStateChart = true;
+    app.selectClassInPanel(cls.id);
+    app.createNode('state', 50, 50);
+    app.saveActiveClassChart();
+    app.updateInspector();
+    const cb = document.getElementById('has-state-chart-cb');
+    cb.checked = false;
+    cb.dispatchEvent(new Event('change'));
+    // Click delete button in dialog
+    const deleteBtn = document.getElementById('confirm-delete-chart');
+    expect(deleteBtn).toBeTruthy();
+    deleteBtn.click();
+    expect(cls.hasStateChart).toBe(false);
+    expect(cls.nodes.length).toBe(0);
+    expect(cls.connections.length).toBe(0);
+    expect(app.S.editingClassChart).toBe(false);
+  });
+});

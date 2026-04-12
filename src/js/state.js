@@ -108,6 +108,7 @@ export function initDefaults() {
       { name: 'setTransparency', signature: 'setTransparency(alpha)', description: 'Set transparency (0..1)' },
     ],
     builtIn: true,
+    hasStateChart: false,
     nodes: [], connections: [], nextId: 1, nextConnId: 1,
   };
   S.classes.push(cssColorClass);
@@ -123,6 +124,7 @@ export function initDefaults() {
       { name: 'tickIntervalSeconds', type: 'Real', defaultValue: '0.1' },
     ],
     builtIn: true,
+    hasStateChart: true,
     nodes: [], connections: [], nextId: 1, nextConnId: 1,
   };
   S.classes.push(gameClass);
@@ -149,6 +151,7 @@ export function initDefaults() {
       { name: 'move', signature: 'move()', description: 'Add dx to xPosition, dy to yPosition' },
     ],
     builtIn: true,
+    hasStateChart: true,
     nodes: [], connections: [], nextId: 1, nextConnId: 1,
   };
   S.classes.push(spriteClass);
@@ -168,6 +171,7 @@ export function initDefaults() {
       { name: 'minYAtBottomOfScreen', type: 'Boolean', defaultValue: 'true' },
     ],
     builtIn: true,
+    hasStateChart: false,
     nodes: [], connections: [], nextId: 1, nextConnId: 1,
   };
   S.classes.push(stageClass);

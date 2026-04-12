@@ -575,6 +575,7 @@ setOnJsonLoaded((data) => {
   if (data.classes) {
     for (const c of data.classes) {
       c.id = S.nextClassId++;
+      if (c.hasStateChart === undefined) c.hasStateChart = true;
       c.nodes = c.nodes || [];
       c.connections = c.connections || [];
       c.nextId = Math.max(1, ...c.nodes.map(n => n.id + 1), 1);

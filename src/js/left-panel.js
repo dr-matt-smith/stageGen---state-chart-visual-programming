@@ -510,12 +510,14 @@ export function selectClassInPanel(id) {
 
   S.activeObjectId = null;
   S.activeClassId = id;
-  S.editingClassChart = true;
   S.selectedLeftPanelItem = { kind: 'class', id };
 
-  // Load the class's state chart for editing
+  // V61: only allow editing if class has state chart enabled
   const cls = S.classes.find(c => c.id === id);
-  if (cls) loadClassChart(cls);
+  S.editingClassChart = cls && cls.hasStateChart !== false;
+
+  // Load the class's state chart for editing
+  if (cls && cls.hasStateChart !== false) loadClassChart(cls);
 
   refreshMinimap();
   applyTransform();
@@ -556,6 +558,7 @@ export function addClass(name) {
     name: name || `Class ${S.nextClassId - 1}`,
     properties: [],
     builtIn: false,
+    hasStateChart: true,
     nodes: [], connections: [], nextId: 1, nextConnId: 1,
   };
   S.classes.push(cls);

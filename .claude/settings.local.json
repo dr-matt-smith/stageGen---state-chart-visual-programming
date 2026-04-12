@@ -13,7 +13,10 @@
       "Bash(xargs -I {} basename {})",
       "Bash(wc:*)",
       "WebFetch(domain:medium.com)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(git stash:*)",
+      "Bash(git checkout:*)",
+      "Bash(npm test:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

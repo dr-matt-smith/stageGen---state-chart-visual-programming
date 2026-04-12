@@ -487,6 +487,74 @@ function renderObjectPropsInspector(objId) {
   }
 }
 
+// ── V61: Delete state chart confirmation dialog ────────────────────────────
+
+function showDeleteChartConfirm(cls, classId, checkbox) {
+  // Revert the checkbox while the dialog is open
+  checkbox.checked = true;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'delete-chart-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+
+  const dialog = document.createElement('div');
+  dialog.id = 'delete-chart-dialog';
+  dialog.style.cssText = 'background:var(--bg-panel,#1e1e1e);color:var(--text-primary,#ccc);border-radius:8px;padding:20px;max-width:400px;width:90%;box-shadow:0 4px 20px rgba(0,0,0,0.5);';
+
+  const msg = document.createElement('p');
+  msg.textContent = 'This class has an existing state chart. The state chart must be removed before this property can be unchecked.';
+  msg.style.cssText = 'margin:0 0 16px 0;font-size:13px;line-height:1.5;';
+
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'toolbar-btn';
+  cancelBtn.style.cssText = 'padding:6px 16px;';
+  cancelBtn.addEventListener('click', () => overlay.remove());
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.textContent = 'Delete State Chart';
+  deleteBtn.id = 'confirm-delete-chart';
+  deleteBtn.className = 'toolbar-btn';
+  deleteBtn.style.cssText = 'padding:6px 16px;background:#c44;color:#fff;';
+  deleteBtn.addEventListener('click', () => {
+    // Clear the state chart data
+    if (cls.id === S.activeClassId) {
+      // Currently editing this class — clear the live canvas arrays
+      for (const n of S.nodes) { if (n.el) n.el.remove(); if (n.mmEl) n.mmEl.remove(); }
+      for (const c of S.connections) { if (c.group) c.group.remove(); }
+      S.nodes = [];
+      S.connections = [];
+      S.nextId = 1;
+      S.nextConnId = 1;
+    }
+    cls.nodes = [];
+    cls.connections = [];
+    cls.nextId = 1;
+    cls.nextConnId = 1;
+    cls.hasStateChart = false;
+    S.editingClassChart = false;
+    overlay.remove();
+    renderClassInspector(classId);
+    notifyLeftPanel();
+  });
+
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(deleteBtn);
+  dialog.appendChild(msg);
+  dialog.appendChild(btnRow);
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+
+  // Close on Escape
+  const escHandler = (e) => {
+    if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escHandler); }
+  };
+  document.addEventListener('keydown', escHandler);
+}
+
 // ── Class inspector ─────────────────────────────────────────────────────────
 
 function renderClassInspector(classId) {
@@ -511,6 +579,35 @@ function renderClassInspector(classId) {
   nameInput.addEventListener('keydown', (e) => e.stopPropagation());
   nameRow.cells[1].appendChild(nameInput);
   tbody.appendChild(nameRow);
+
+  // V61: hasStateChart checkbox
+  const chartRow = document.createElement('tr');
+  chartRow.innerHTML = `<td>Has State Chart</td><td></td>`;
+  const chartCb = document.createElement('input');
+  chartCb.type = 'checkbox';
+  chartCb.id = 'has-state-chart-cb';
+  chartCb.checked = cls.hasStateChart !== false;
+  chartCb.addEventListener('change', () => {
+    if (!chartCb.checked) {
+      // Check if class has existing state chart data
+      const classNodes = cls.id === S.activeClassId ? S.nodes : cls.nodes;
+      if (classNodes && classNodes.length > 0) {
+        // Show confirmation dialog
+        showDeleteChartConfirm(cls, classId, chartCb);
+        return;
+      }
+    }
+    cls.hasStateChart = chartCb.checked;
+    if (!cls.hasStateChart && cls.id === S.activeClassId) {
+      S.editingClassChart = false;
+      notifyLeftPanel();
+    } else if (cls.hasStateChart && cls.id === S.activeClassId) {
+      S.editingClassChart = true;
+      notifyLeftPanel();
+    }
+  });
+  chartRow.cells[1].appendChild(chartCb);
+  tbody.appendChild(chartRow);
 
   // Section header for properties
   const headerRow = document.createElement('tr');
@@ -829,6 +926,7 @@ export function serialiseDiagram() {
     classes: S.classes.map(c => ({
       id: c.id, name: c.name,
       builtIn: c.builtIn || undefined,
+      hasStateChart: c.hasStateChart !== false ? true : false,
       properties: c.properties,
       ...(c.methods ? { methods: c.methods } : {}),
       nodes: serialiseNodes(c.id === S.activeClassId ? S.nodes : c.nodes),
