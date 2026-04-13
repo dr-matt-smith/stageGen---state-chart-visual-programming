@@ -414,3 +414,43 @@ Version 62 features - Class Diagram look-and-feel for editing class members
 - ✅ and add Vitest and Playwright tests for all features implemented
 - ✅ 246 Vitest unit tests passing (20 new V62 tests)
 - ✅ 173 Playwright e2e tests passing (14 new V62 tests)
+
+Version 63 features - more built-in classes
+==================
+
+- ✅ declare read only built-in classes for Sound and Image
+
+  - ✅ built-in, readonly class: Sound
+    - properties
+      - String filePath (relative to /public)
+      - Boolean looping (default to False)
+      - Float duration
+      - Float playHead (from 0 to duration - where Resume would begin playing from if play has been paused)
+      - Float volume - in range 0..1 (0 silent, 1 max volume), default to 0.5
+    - methods:
+      - Play() - play from playHead location
+      - Pause() - stop playing and leave playHead where it is
+      - Stop() 0- stop playing and reset playHead to 0
+      - SetLooping(Boolean) - determines whether Play() restarts from 0, or stops when playHead reaches the dend
+      - IsPlaying(): Boolean - returns true/false depending on whether sound is currently playing
+      - SetVolume(Float)
+      - GetVolume(Float)
+      - GetPlayHead(): Float
+
+    - ✅ build-in, readonly class: Image
+      - properties
+        - String filePath (relative to /public)
+
+
+- ✅ user still given drop down from /public/audio and /public/images folders when choosing
+- ✅ but when such a class is selected then in the Inspector, allow user to access properties and methods for these built-in classes
+  - ✅ also allow their properties/methods to be referred to in Behaviours for transitions and states
+
+
+- ✅ remove these methods from Sprite (since these actions can be acheived sending  messages to the moveSound object of a sprite):
+  - MoveSoundPlay(), MoveSoundPause() MoveSoundSetLooping(boolean)
+
+- ✅ and add Vitest and Playwright tests for all features implemented
+- ✅ 260 Vitest unit tests passing (17 new V63 tests)
+- ✅ 184 Playwright e2e tests passing (11 new V63 tests)
+

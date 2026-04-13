@@ -95,6 +95,47 @@ export function initDefaults() {
   };
   S.enumClasses.push(bgImageFitEnum);
 
+  // ── V63: Sound class ──
+  const soundClass = {
+    id: S.nextClassId++,
+    name: 'Sound',
+    properties: [
+      { name: 'filePath', type: 'String' },
+      { name: 'looping', type: 'Boolean', defaultValue: 'false' },
+      { name: 'duration', type: 'Real' },
+      { name: 'playHead', type: 'Real' },
+      { name: 'volume', type: 'Real', defaultValue: '0.5' },
+    ],
+    methods: [
+      { name: 'Play', signature: 'Play()', description: 'Play from playHead location' },
+      { name: 'Pause', signature: 'Pause()', description: 'Stop playing, leave playHead where it is' },
+      { name: 'Stop', signature: 'Stop()', description: 'Stop playing, reset playHead to 0' },
+      { name: 'SetLooping', signature: 'SetLooping(Boolean)', description: 'Set whether Play() loops or stops at end' },
+      { name: 'IsPlaying', signature: 'IsPlaying()', returnType: 'Boolean', description: 'Returns true if currently playing' },
+      { name: 'SetVolume', signature: 'SetVolume(Real)', description: 'Set volume (0..1)' },
+      { name: 'GetVolume', signature: 'GetVolume()', returnType: 'Real', description: 'Get current volume' },
+      { name: 'GetPlayHead', signature: 'GetPlayHead()', returnType: 'Real', description: 'Get current playHead position' },
+    ],
+    builtIn: true,
+    hasStateChart: false,
+    nodes: [], connections: [], nextId: 1, nextConnId: 1,
+  };
+  S.classes.push(soundClass);
+
+  // ── V63: Image class ──
+  const imageClass = {
+    id: S.nextClassId++,
+    name: 'Image',
+    properties: [
+      { name: 'filePath', type: 'String' },
+    ],
+    methods: [],
+    builtIn: true,
+    hasStateChart: false,
+    nodes: [], connections: [], nextId: 1, nextConnId: 1,
+  };
+  S.classes.push(imageClass);
+
   // ── CSSColor class ──
   const cssColorClass = {
     id: S.nextClassId++,

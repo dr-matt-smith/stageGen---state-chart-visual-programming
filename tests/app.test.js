@@ -1348,63 +1348,28 @@ describe('V49: Image/Sound property dropdowns in data panel', () => {
 // V50 — Sound methods
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe('V50: getSoundMethods', () => {
+describe('V50: getSoundMethods (V63: returns empty — Sound is now a built-in class)', () => {
+  it('returns empty array always (V63: auto-generation removed)', () => {
+    const cls = { properties: [{ name: 'music', type: 'Sound' }] };
+    expect(app.getSoundMethods(cls)).toEqual([]);
+  });
+
   it('returns empty array for class with no Sound properties', () => {
     const cls = { properties: [{ name: 'x', type: 'Integer' }] };
     expect(app.getSoundMethods(cls)).toEqual([]);
   });
-
-  it('returns 3 methods per Sound property', () => {
-    const cls = { properties: [{ name: 'music', type: 'Sound' }] };
-    const methods = app.getSoundMethods(cls);
-    expect(methods.length).toBe(3);
-  });
-
-  it('generates correct method names from property name', () => {
-    const cls = { properties: [{ name: 'music', type: 'Sound' }] };
-    const methods = app.getSoundMethods(cls);
-    expect(methods[0].signature).toBe('MusicPlay()');
-    expect(methods[1].signature).toBe('MusicPause()');
-    expect(methods[2].signature).toBe('MusicSetLooping(boolean)');
-  });
-
-  it('generates methods for multiple Sound properties', () => {
-    const cls = { properties: [
-      { name: 'music', type: 'Sound' },
-      { name: 'fireSound', type: 'Sound' },
-    ]};
-    const methods = app.getSoundMethods(cls);
-    expect(methods.length).toBe(6);
-    expect(methods[3].signature).toBe('FireSoundPlay()');
-    expect(methods[4].signature).toBe('FireSoundPause()');
-    expect(methods[5].signature).toBe('FireSoundSetLooping(boolean)');
-  });
-
-  it('ignores non-Sound properties', () => {
-    const cls = { properties: [
-      { name: 'name', type: 'String' },
-      { name: 'sfx', type: 'Sound' },
-      { name: 'icon', type: 'Image' },
-    ]};
-    const methods = app.getSoundMethods(cls);
-    expect(methods.length).toBe(3);
-    expect(methods[0].signature).toBe('SfxPlay()');
-  });
 });
 
-describe('V50: Sound methods in class inspector', () => {
-  it('class inspector shows Sound Methods section for class with Sound property', () => {
+describe('V50: Sound methods in class inspector (V63: no auto-generated methods)', () => {
+  it('class with Sound property does NOT show auto-generated methods', () => {
     const cls = app.addClass('SoundTestV50');
     cls.properties.push({ name: 'bgm', type: 'Sound' });
     app.enterClassMode();
     app.selectClassInPanel(cls.id);
 
-    // V62: methods are rendered as class-method-row in the class diagram
+    // V63: no auto-generated sound methods
     const rows = document.querySelectorAll('.class-method-row');
-    expect(rows.length).toBe(3);
-    expect(rows[0].textContent).toContain('BgmPlay()');
-    expect(rows[1].textContent).toContain('BgmPause()');
-    expect(rows[2].textContent).toContain('BgmSetLooping(boolean)');
+    expect(rows.length).toBe(0);
   });
 });
 
@@ -2241,15 +2206,12 @@ describe('V62: Property rows in class diagram', () => {
 });
 
 describe('V62: Methods section in class diagram', () => {
-  it('auto-generated sound methods appear in methods compartment', () => {
+  it('V63: Sound property does NOT generate auto methods (Sound is a built-in class)', () => {
     const cls = app.addClass('V62SoundTest');
     cls.properties.push({ name: 'sfx', type: 'Sound' });
     app.selectClassInPanel(cls.id);
     const rows = document.querySelectorAll('.class-method-row');
-    expect(rows.length).toBe(3);
-    expect(rows[0].textContent).toContain('SfxPlay()');
-    expect(rows[1].textContent).toContain('SfxPause()');
-    expect(rows[2].textContent).toContain('SfxSetLooping(boolean)');
+    expect(rows.length).toBe(0);
   });
 
   it('explicit class methods are editable', () => {
@@ -2323,5 +2285,143 @@ describe('V62: Default value toggle', () => {
     defCb.checked = false;
     defCb.dispatchEvent(new Event('change'));
     expect(cls.properties[0].defaultValue).toBeUndefined();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V63 — Built-in Sound and Image classes
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('V63: Built-in Sound class', () => {
+  it('Sound class exists and is built-in', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sound');
+    expect(cls).toBeTruthy();
+    expect(cls.builtIn).toBe(true);
+  });
+
+  it('Sound class has correct properties', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sound');
+    const names = cls.properties.map(p => p.name);
+    expect(names).toContain('filePath');
+    expect(names).toContain('looping');
+    expect(names).toContain('duration');
+    expect(names).toContain('playHead');
+    expect(names).toContain('volume');
+  });
+
+  it('Sound looping defaults to false', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sound');
+    const looping = cls.properties.find(p => p.name === 'looping');
+    expect(looping.defaultValue).toBe('false');
+  });
+
+  it('Sound volume defaults to 0.5', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sound');
+    const volume = cls.properties.find(p => p.name === 'volume');
+    expect(volume.defaultValue).toBe('0.5');
+  });
+
+  it('Sound class has correct methods', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sound');
+    const sigs = cls.methods.map(m => m.signature);
+    expect(sigs).toContain('Play()');
+    expect(sigs).toContain('Pause()');
+    expect(sigs).toContain('Stop()');
+    expect(sigs).toContain('SetLooping(Boolean)');
+    expect(sigs).toContain('IsPlaying()');
+    expect(sigs).toContain('SetVolume(Real)');
+    expect(sigs).toContain('GetVolume()');
+    expect(sigs).toContain('GetPlayHead()');
+  });
+
+  it('Sound IsPlaying has returnType Boolean', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sound');
+    const m = cls.methods.find(m => m.name === 'IsPlaying');
+    expect(m.returnType).toBe('Boolean');
+  });
+
+  it('Sound GetVolume has returnType Real', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sound');
+    const m = cls.methods.find(m => m.name === 'GetVolume');
+    expect(m.returnType).toBe('Real');
+  });
+
+  it('Sound class has hasStateChart false', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sound');
+    expect(cls.hasStateChart).toBe(false);
+  });
+});
+
+describe('V63: Built-in Image class', () => {
+  it('Image class exists and is built-in', () => {
+    const cls = app.S.classes.find(c => c.name === 'Image');
+    expect(cls).toBeTruthy();
+    expect(cls.builtIn).toBe(true);
+  });
+
+  it('Image class has filePath property', () => {
+    const cls = app.S.classes.find(c => c.name === 'Image');
+    const fp = cls.properties.find(p => p.name === 'filePath');
+    expect(fp).toBeTruthy();
+    expect(fp.type).toBe('String');
+  });
+
+  it('Image class has hasStateChart false', () => {
+    const cls = app.S.classes.find(c => c.name === 'Image');
+    expect(cls.hasStateChart).toBe(false);
+  });
+});
+
+describe('V63: Sound/Image classes visible in inspector', () => {
+  it('selecting Sound class shows its methods in class diagram', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sound');
+    app.selectClassInPanel(cls.id);
+    const diagram = document.getElementById('class-diagram');
+    expect(diagram).toBeTruthy();
+    const methodRows = document.querySelectorAll('.class-method-row');
+    expect(methodRows.length).toBe(8);
+  });
+
+  it('selecting Image class shows its properties in class diagram', () => {
+    const cls = app.S.classes.find(c => c.name === 'Image');
+    app.selectClassInPanel(cls.id);
+    const diagram = document.getElementById('class-diagram');
+    expect(diagram).toBeTruthy();
+    const propRows = document.querySelectorAll('.class-prop-row');
+    expect(propRows.length).toBe(1);
+  });
+});
+
+describe('V63: Auto-generated sound methods removed', () => {
+  it('getSoundMethods always returns empty array', () => {
+    const cls = { properties: [{ name: 'music', type: 'Sound' }] };
+    expect(app.getSoundMethods(cls)).toEqual([]);
+  });
+
+  it('Sprite class has move() but no auto-generated sound methods', () => {
+    const cls = app.S.classes.find(c => c.name === 'Sprite');
+    app.selectClassInPanel(cls.id);
+    const sigInputs = document.querySelectorAll('.class-method-row .cd-method-sig');
+    // Sprite has only explicit move() — no auto-generated MoveSoundPlay etc.
+    expect(sigInputs.length).toBe(1);
+    expect(sigInputs[0].value).toBe('move()');
+  });
+});
+
+describe('V63: Serialisation includes Sound and Image classes', () => {
+  it('serialised data includes Sound class with methods', () => {
+    const json = app.serialiseDiagram();
+    const sound = json.classes.find(c => c.name === 'Sound');
+    expect(sound).toBeTruthy();
+    expect(sound.builtIn).toBe(true);
+    expect(sound.methods.length).toBe(8);
+  });
+
+  it('serialised data includes Image class', () => {
+    const json = app.serialiseDiagram();
+    const img = json.classes.find(c => c.name === 'Image');
+    expect(img).toBeTruthy();
+    expect(img.builtIn).toBe(true);
+    expect(img.properties.length).toBe(1);
   });
 });

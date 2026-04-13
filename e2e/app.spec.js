@@ -830,16 +830,18 @@ test.describe('V44: Left panel visibility', () => {
     expect(texts.some(t => t.includes('stage'))).toBe(true);
   });
 
-  test('classes list contains Game, Sprite, CSSColor, and Stage', async ({ page }) => {
+  test('classes list contains built-in classes including Sound and Image', async ({ page }) => {
     // classes are minimized when object is active, expand first
     await page.locator('#btn-edit-classes').click();
     const items = page.locator('#classes-list .left-panel-item');
-    await expect(items).toHaveCount(4);
+    await expect(items).toHaveCount(6); // V63: Sound, Image, CSSColor, Game, Sprite, Stage
     const texts = await items.allTextContents();
     expect(texts.some(t => t.includes('Game'))).toBe(true);
     expect(texts.some(t => t.includes('Sprite'))).toBe(true);
     expect(texts.some(t => t.includes('CSSColor'))).toBe(true);
     expect(texts.some(t => t.includes('Stage'))).toBe(true);
+    expect(texts.some(t => t.includes('Sound'))).toBe(true);
+    expect(texts.some(t => t.includes('Image'))).toBe(true);
   });
 
   test('enums list contains default enums', async ({ page }) => {
@@ -1424,8 +1426,8 @@ test.describe('V49: Image/Sound property dropdowns', () => {
 // V50 — Sound methods
 // ═══════════════════════════════════════════════════════════════════════════════
 
-test.describe('V50: Sound methods in class inspector', () => {
-  test('class with Sound property shows auto-generated methods', async ({ page }) => {
+test.describe('V50: Sound methods in class inspector (V63: auto-generation removed)', () => {
+  test('class with Sound property does NOT show auto-generated methods', async ({ page }) => {
     // Enter class mode, create a class with Sound property
     await page.locator('#btn-edit-classes').click();
     await page.locator('#btn-add-class').click();
@@ -1445,17 +1447,14 @@ test.describe('V50: Sound methods in class inspector', () => {
     const typeSelect = page.locator('.class-prop-row').last().locator('select.cd-type-select').first();
     await typeSelect.selectOption('Sound');
 
-    // V62: sound methods appear as class-method-row in the methods compartment
+    // V63: no auto-generated sound methods — Sound is a built-in class
     const methodRows = page.locator('.class-method-row');
-    await expect(methodRows).toHaveCount(3);
-    await expect(methodRows.nth(0)).toContainText('MusicPlay()');
-    await expect(methodRows.nth(1)).toContainText('MusicPause()');
-    await expect(methodRows.nth(2)).toContainText('MusicSetLooping(boolean)');
+    await expect(methodRows).toHaveCount(0);
   });
 });
 
-test.describe('V50: Sound methods in data panel', () => {
-  test('object with Sound property shows methods in data panel', async ({ page }) => {
+test.describe('V50: Sound methods in data panel (V63: auto-generation removed)', () => {
+  test('object with Sound property does NOT show auto-generated methods', async ({ page }) => {
     // Create class with Sound property in class mode
     await page.locator('#btn-edit-classes').click();
     await page.locator('#btn-add-class').click();
@@ -1476,12 +1475,9 @@ test.describe('V50: Sound methods in data panel', () => {
     await addObjectViaForm(page, 'sfxObj', 'SfxClass');
     await page.locator('#objects-list .left-panel-item').last().click();
 
-    // Should see sound method items in data panel
+    // V63: no auto-generated sound methods in data panel
     const methodItems = page.locator('#inspector-table .sound-method-row');
-    await expect(methodItems).toHaveCount(3);
-    await expect(methodItems.nth(0)).toContainText('FireSoundPlay()');
-    await expect(methodItems.nth(1)).toContainText('FireSoundPause()');
-    await expect(methodItems.nth(2)).toContainText('FireSoundSetLooping(boolean)');
+    await expect(methodItems).toHaveCount(0);
   });
 });
 
@@ -1890,12 +1886,12 @@ test.describe('V62: Methods section in class diagram', () => {
     await expect(sigInput).toHaveValue('move()');
   });
 
-  test('auto-generated sound methods appear for Sound properties', async ({ page }) => {
+  test('V63: Sprite shows only explicit move() method, no auto-generated sound methods', async ({ page }) => {
     await enterClassEditMode(page, 'Sprite');
-    // Sprite has moveSound: Sound, so 3 auto methods + 1 explicit (move)
+    // V63: only explicit move() — auto-generated sound methods removed
     const methodRows = page.locator('.class-method-row');
     const count = await methodRows.count();
-    expect(count).toBe(4); // move() + MoveSoundPlay() + MoveSoundPause() + MoveSoundSetLooping(boolean)
+    expect(count).toBe(1); // move() only
   });
 
   test('+ button adds a new method', async ({ page }) => {
@@ -1913,5 +1909,106 @@ test.describe('V62: Column headers', () => {
     await expect(headers).toBeVisible();
     await expect(headers.locator('.cd-col-default')).toContainText('default');
     await expect(headers.locator('.cd-col-delete')).toContainText('delete');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// V63 — Built-in Sound and Image classes
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('V63: Sound class in class list', () => {
+  test('Sound class appears in classes list', async ({ page }) => {
+    await enterClassEditMode(page, 'Sound');
+    await expect(page.locator('#class-diagram')).toBeVisible();
+  });
+
+  test('Sound class shows properties in diagram', async ({ page }) => {
+    await enterClassEditMode(page, 'Sound');
+    const propRows = page.locator('.class-prop-row');
+    await expect(propRows).toHaveCount(5); // filePath, looping, duration, playHead, volume
+  });
+
+  test('Sound class shows 8 methods in diagram', async ({ page }) => {
+    await enterClassEditMode(page, 'Sound');
+    const methodRows = page.locator('.class-method-row');
+    await expect(methodRows).toHaveCount(8);
+  });
+
+  test('Sound class methods include Play, Pause, Stop', async ({ page }) => {
+    await enterClassEditMode(page, 'Sound');
+    const sigInputs = page.locator('.class-method-row .cd-method-sig');
+    await expect(sigInputs.nth(0)).toHaveValue('Play()');
+    await expect(sigInputs.nth(1)).toHaveValue('Pause()');
+    await expect(sigInputs.nth(2)).toHaveValue('Stop()');
+  });
+});
+
+test.describe('V63: Image class in class list', () => {
+  test('Image class appears in classes list', async ({ page }) => {
+    await enterClassEditMode(page, 'Image');
+    await expect(page.locator('#class-diagram')).toBeVisible();
+  });
+
+  test('Image class shows filePath property', async ({ page }) => {
+    await enterClassEditMode(page, 'Image');
+    const propRows = page.locator('.class-prop-row');
+    await expect(propRows).toHaveCount(1);
+    await expect(propRows.first().locator('.cd-prop-name')).toHaveValue('filePath');
+  });
+});
+
+test.describe('V63: Auto-generated sound methods removed', () => {
+  test('Sprite class shows only move() method, no sound methods', async ({ page }) => {
+    await enterClassEditMode(page, 'Sprite');
+    const sigInputs = page.locator('.class-method-row .cd-method-sig');
+    await expect(sigInputs).toHaveCount(1);
+    await expect(sigInputs.first()).toHaveValue('move()');
+  });
+
+  test('class with Sound property does not show auto-generated methods', async ({ page }) => {
+    // Create a class with a Sound property
+    await enterClassEditMode(page, 'Game');
+    await page.locator('#btn-add-class').click();
+    await page.locator('#modal-name-input').fill('V63SndTest');
+    await page.locator('#modal-ok').click();
+    await page.locator('#classes-list .left-panel-item:has-text("V63SndTest")').first().click();
+    await page.locator('.class-diagram-props .cd-add-btn').click();
+    const lastRow = page.locator('.class-prop-row').last();
+    await lastRow.locator('.cd-type-select').selectOption('Sound');
+    // No method rows should appear
+    await expect(page.locator('.class-method-row')).toHaveCount(0);
+  });
+});
+
+test.describe('V63: Sound/Image still available as property types', () => {
+  test('property type dropdown still includes Sound and Image', async ({ page }) => {
+    await enterClassEditMode(page, 'Game');
+    const select = page.locator('#class-diagram select.cd-type-select').first();
+    const options = await select.locator('option').allTextContents();
+    expect(options).toContain('Sound');
+    expect(options).toContain('Image');
+  });
+});
+
+test.describe('V63: Serialisation includes Sound and Image classes', () => {
+  test('exported JSON includes Sound class with methods', async ({ page }) => {
+    await page.locator('#btn-export-json').click();
+    await expect(page.locator('#json-modal')).toBeVisible();
+    const json = await page.locator('#json-modal pre').textContent();
+    const data = JSON.parse(json);
+    const sound = data.classes.find(c => c.name === 'Sound');
+    expect(sound).toBeTruthy();
+    expect(sound.builtIn).toBe(true);
+    expect(sound.methods.length).toBe(8);
+  });
+
+  test('exported JSON includes Image class', async ({ page }) => {
+    await page.locator('#btn-export-json').click();
+    await expect(page.locator('#json-modal')).toBeVisible();
+    const json = await page.locator('#json-modal pre').textContent();
+    const data = JSON.parse(json);
+    const img = data.classes.find(c => c.name === 'Image');
+    expect(img).toBeTruthy();
+    expect(img.builtIn).toBe(true);
   });
 });

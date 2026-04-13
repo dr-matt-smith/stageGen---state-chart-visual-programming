@@ -886,24 +886,10 @@ function renderClassInspector(classId) {
   inspectorBody.appendChild(chartRow);
 }
 
-// ── Sound methods (auto-generated) ──────────────────────────────────────────
-
-/**
- * For a given class, return an array of auto-generated method signatures
- * derived from Sound-type properties.
- * e.g. property "music" → MusicPlay(), MusicPause(), MusicSetLooping(boolean)
- */
-export function getSoundMethods(cls) {
-  if (!cls || !cls.properties) return [];
-  const methods = [];
-  for (const prop of cls.properties) {
-    if (prop.type !== 'Sound') continue;
-    const base = prop.name.charAt(0).toUpperCase() + prop.name.slice(1);
-    methods.push({ name: `${base}Play`, signature: `${base}Play()`, description: 'Play from beginning' });
-    methods.push({ name: `${base}Pause`, signature: `${base}Pause()`, description: 'Pause playback' });
-    methods.push({ name: `${base}SetLooping`, signature: `${base}SetLooping(boolean)`, description: 'Set looping on/off' });
-  }
-  return methods;
+// V63: getSoundMethods removed — Sound is now a built-in class with its own methods.
+// Kept as empty stub for backward compatibility with any remaining references.
+export function getSoundMethods() {
+  return [];
 }
 
 // ── Enum class inspector ────────────────────────────────────────────────────
